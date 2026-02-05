@@ -18,6 +18,11 @@ struct MainBubbleView: View {
     @State private var currentTime = Date()
     @ObservedObject private var localizationManager = LocalizationManager.shared
 
+    // Date navigation state
+    @State private var selectedDate = Date()
+    @State private var showingDatePicker = false
+    @State private var dragOffset: CGFloat = 0
+
     // Undo state
     @State private var recentlyCompletedTask: TaskItem?
     @State private var createdRecurringTask: TaskItem?
@@ -27,14 +32,28 @@ struct MainBubbleView: View {
     // Timer for updating time-based positioning
     let timeUpdateTimer = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
 
-    // Filter tasks to only show those due today, overdue, or without due date
-    private var todayTasks: [TaskItem] {
-        allTasks.filter { $0.shouldShowToday }
+    private var calendar: Calendar {
+        var cal = Calendar.current
+        cal.firstWeekday = 2 // Monday
+        return cal
+    }
+
+    private var isViewingToday: Bool {
+        calendar.isDateInToday(selectedDate)
+    }
+
+    // Filter tasks for the selected date
+    private var tasksForSelectedDate: [TaskItem] {
+        if isViewingToday {
+            return allTasks.filter { $0.shouldShowToday }
+        } else {
+            return allTasks.filter { $0.shouldShowOnDate(selectedDate) }
+        }
     }
 
     // Sort tasks by priority/urgency (highest sortScore first = top)
     private var sortedTasks: [TaskItem] {
-        todayTasks.sorted { $0.sortScore > $1.sortScore }
+        tasksForSelectedDate.sorted { $0.sortScore > $1.sortScore }
     }
 
     // Day progress: 0.0 at 6 AM, 1.0 at 10 PM
@@ -57,18 +76,52 @@ struct MainBubbleView: View {
             LinearGradient(
                 gradient: Gradient(colors: [
                     Color(.systemBackground),
-                    dayProgress > 0.7 ? Color.orange.opacity(0.1) : Color(.systemGray6)
+                    isViewingToday && dayProgress > 0.7 ? Color.orange.opacity(0.1) : Color(.systemGray6)
                 ]),
                 startPoint: .top,
                 endPoint: .bottom
             )
             .ignoresSafeArea()
 
-            if todayTasks.isEmpty {
-                emptyStateView
-            } else {
-                bubbleGridView
+            VStack(spacing: 0) {
+                // Date navigation header - always at top
+                DateNavigationHeader(
+                    selectedDate: $selectedDate,
+                    showingDatePicker: $showingDatePicker,
+                    onPrevious: { navigateDate(by: -1) },
+                    onNext: { navigateDate(by: 1) },
+                    onToday: { goToToday() }
+                )
+
+                // Main content with swipe gesture
+                ZStack {
+                    if tasksForSelectedDate.isEmpty {
+                        emptyStateView
+                    } else {
+                        bubbleGridView
+                    }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .offset(x: dragOffset)
+                .gesture(
+                    DragGesture()
+                        .onChanged { value in
+                            dragOffset = value.translation.width * 0.3
+                        }
+                        .onEnded { value in
+                            let threshold: CGFloat = 50
+                            withAnimation(.easeOut(duration: 0.2)) {
+                                if value.translation.width > threshold {
+                                    navigateDate(by: -1)
+                                } else if value.translation.width < -threshold {
+                                    navigateDate(by: 1)
+                                }
+                                dragOffset = 0
+                            }
+                        }
+                )
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
 
             // Floating add button
             VStack {
@@ -98,31 +151,50 @@ struct MainBubbleView: View {
             }
         }
         .navigationTitle(L("main.title"))
-        .navigationBarTitleDisplayMode(.large)
+        .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showingAddSheet) {
             AddTaskSheet()
         }
         .sheet(item: $editingTask) { task in
             EditTaskSheet(task: task)
         }
+        .sheet(isPresented: $showingDatePicker) {
+            DatePickerSheet(selectedDate: $selectedDate)
+        }
         .onReceive(timeUpdateTimer) { _ in
             currentTime = Date()
         }
     }
 
+    private func navigateDate(by days: Int) {
+        withAnimation(.easeInOut(duration: 0.2)) {
+            if let newDate = calendar.date(byAdding: .day, value: days, to: selectedDate) {
+                selectedDate = newDate
+            }
+        }
+    }
+
+    private func goToToday() {
+        withAnimation(.easeInOut(duration: 0.2)) {
+            selectedDate = Date()
+        }
+    }
+
     private var emptyStateView: some View {
         VStack(spacing: 12) {
-            Image(systemName: "bubble.left.and.bubble.right")
+            Image(systemName: isViewingToday ? "bubble.left.and.bubble.right" : "calendar")
                 .font(.system(size: 48))
                 .foregroundColor(.secondary)
 
-            Text(L("main.empty.title"))
+            Text(isViewingToday ? L("main.empty.title") : L("date.notasks"))
                 .font(.title3)
                 .foregroundColor(.secondary)
 
-            Text(L("main.empty.subtitle"))
-                .font(.callout)
-                .foregroundColor(.secondary)
+            if isViewingToday {
+                Text(L("main.empty.subtitle"))
+                    .font(.callout)
+                    .foregroundColor(.secondary)
+            }
         }
     }
 
@@ -387,6 +459,162 @@ struct BubbleLayoutView: View {
         }
 
         return (positions, currentY + 100)
+    }
+}
+
+// MARK: - Date Navigation Header
+
+struct DateNavigationHeader: View {
+    @Binding var selectedDate: Date
+    @Binding var showingDatePicker: Bool
+    let onPrevious: () -> Void
+    let onNext: () -> Void
+    let onToday: () -> Void
+
+    private var calendar: Calendar {
+        var cal = Calendar.current
+        cal.firstWeekday = 2
+        return cal
+    }
+
+    private var isToday: Bool {
+        calendar.isDateInToday(selectedDate)
+    }
+
+    private var isTomorrow: Bool {
+        calendar.isDateInTomorrow(selectedDate)
+    }
+
+    private var isYesterday: Bool {
+        calendar.isDateInYesterday(selectedDate)
+    }
+
+    private var dateLabel: String {
+        if isToday {
+            return L("date.today")
+        } else if isTomorrow {
+            return L("date.tomorrow")
+        } else if isYesterday {
+            return L("date.yesterday")
+        } else {
+            let formatter = DateFormatter()
+            formatter.dateFormat = "EEE, MMM d"
+            return formatter.string(from: selectedDate)
+        }
+    }
+
+    private var fullDateLabel: String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        return formatter.string(from: selectedDate)
+    }
+
+    var body: some View {
+        HStack(spacing: 12) {
+            // Previous day button
+            Button(action: onPrevious) {
+                Image(systemName: "chevron.left")
+                    .font(.body.weight(.medium))
+                    .foregroundColor(.primary)
+                    .frame(width: 36, height: 36)
+                    .background(Color(.systemGray5))
+                    .clipShape(Circle())
+            }
+
+            Spacer()
+
+            // Date display - tappable to show picker
+            Button(action: { showingDatePicker = true }) {
+                VStack(spacing: 2) {
+                    Text(dateLabel)
+                        .font(.headline)
+                        .foregroundColor(isToday ? .primary : .blue)
+
+                    if !isToday && !isTomorrow && !isYesterday {
+                        Text(fullDateLabel)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+
+            Spacer()
+
+            // Next day button
+            Button(action: onNext) {
+                Image(systemName: "chevron.right")
+                    .font(.body.weight(.medium))
+                    .foregroundColor(.primary)
+                    .frame(width: 36, height: 36)
+                    .background(Color(.systemGray5))
+                    .clipShape(Circle())
+            }
+
+            // Today button (only show when not viewing today)
+            if !isToday {
+                Button(action: onToday) {
+                    Text(L("date.today.short"))
+                        .font(.caption.weight(.semibold))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(Color.blue)
+                        .clipShape(Capsule())
+                }
+                .transition(.scale.combined(with: .opacity))
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(Color(.systemBackground).opacity(0.95))
+        .animation(.easeInOut(duration: 0.2), value: isToday)
+    }
+}
+
+// MARK: - Date Picker Sheet
+
+struct DatePickerSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @Binding var selectedDate: Date
+
+    @State private var tempDate: Date
+
+    init(selectedDate: Binding<Date>) {
+        self._selectedDate = selectedDate
+        self._tempDate = State(initialValue: selectedDate.wrappedValue)
+    }
+
+    var body: some View {
+        NavigationStack {
+            VStack {
+                DatePicker(
+                    L("date.select"),
+                    selection: $tempDate,
+                    displayedComponents: .date
+                )
+                .datePickerStyle(.graphical)
+                .padding()
+
+                Spacer()
+            }
+            .navigationTitle(L("date.select"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(L("task.cancel")) {
+                        dismiss()
+                    }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(L("date.go")) {
+                        selectedDate = tempDate
+                        dismiss()
+                    }
+                    .fontWeight(.semibold)
+                }
+            }
+        }
+        .presentationDetents([.medium])
     }
 }
 

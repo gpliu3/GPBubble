@@ -67,11 +67,12 @@ struct AddTaskSheet: View {
                     .pickerStyle(.menu)
 
                     // Visual priority indicator
-                    HStack {
+                    HStack(spacing: 8) {
                         ForEach(1...5, id: \.self) { level in
                             Circle()
                                 .fill(level <= priority ? priorityColor(for: priority) : Color.gray.opacity(0.3))
-                                .frame(width: 24, height: 24)
+                                .frame(minWidth: 28, minHeight: 28)
+                                .frame(maxWidth: 36, maxHeight: 36)
                                 .onTapGesture {
                                     withAnimation(.easeInOut(duration: 0.2)) {
                                         priority = level
@@ -82,7 +83,7 @@ struct AddTaskSheet: View {
                         }
                         Spacer()
                         Text(priorityLabel(for: priority))
-                            .font(.caption)
+                            .font(.subheadline)
                             .foregroundColor(.secondary)
                     }
                     .accessibilityElement(children: .contain)
@@ -380,7 +381,8 @@ struct WeekdayPicker: View {
                 .font(.caption)
                 .foregroundColor(.secondary)
 
-            HStack(spacing: 6) {
+            // Use flexible grid for better Zoom mode support
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 4), count: 7), spacing: 4) {
                 ForEach(Weekday.allCases) { day in
                     Button {
                         if selectedDays.contains(day) {
@@ -390,8 +392,10 @@ struct WeekdayPicker: View {
                         }
                     } label: {
                         Text(String(day.shortName.prefix(1)))
-                            .font(.caption.weight(.semibold))
-                            .frame(width: 36, height: 36)
+                            .font(.subheadline.weight(.semibold))
+                            .frame(minWidth: 36, minHeight: 36)
+                            .frame(maxWidth: .infinity)
+                            .aspectRatio(1, contentMode: .fit)
                             .background(selectedDays.contains(day) ? Color.blue : Color.gray.opacity(0.2))
                             .foregroundColor(selectedDays.contains(day) ? .white : .primary)
                             .clipShape(Circle())
@@ -404,7 +408,7 @@ struct WeekdayPicker: View {
 
             if !selectedDays.isEmpty {
                 Text(selectedDays.sorted { $0.rawValue < $1.rawValue }.map { $0.shortName }.joined(separator: ", "))
-                    .font(.caption)
+                    .font(.subheadline)
                     .foregroundColor(.blue)
             }
         }
@@ -516,32 +520,30 @@ struct MonthlyPatternPicker: View {
 struct DayOfMonthPicker: View {
     @Binding var selectedDay: Int
 
-    private let dayOptions: [(value: Int, label: String)] = {
-        var options: [(Int, String)] = (1...31).map { ($0, "\($0)") }
-        options.append((0, L("monthly.lastday.short")))
-        return options
-    }()
-
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 10) {
             Text(L("monthly.day.select"))
-                .font(.caption)
+                .font(.subheadline)
                 .foregroundColor(.secondary)
 
-            // Grid of day buttons (7 columns)
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 4), count: 7), spacing: 4) {
+            // Grid of day buttons (7 columns) - flexible for Zoom mode
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 6), count: 7), spacing: 6) {
                 ForEach(1...31, id: \.self) { day in
                     Button {
                         selectedDay = day
                     } label: {
                         Text("\(day)")
-                            .font(.caption.weight(.medium))
-                            .frame(width: 32, height: 32)
+                            .font(.subheadline.weight(.medium))
+                            .frame(minWidth: 32, minHeight: 32)
+                            .frame(maxWidth: .infinity)
+                            .aspectRatio(1, contentMode: .fit)
                             .background(selectedDay == day ? Color.purple : Color.gray.opacity(0.2))
                             .foregroundColor(selectedDay == day ? .white : .primary)
                             .clipShape(Circle())
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel(String(format: L("monthly.day.format"), "\(day)"))
+                    .accessibilityAddTraits(selectedDay == day ? [.isButton, .isSelected] : .isButton)
                 }
             }
 
@@ -551,18 +553,21 @@ struct DayOfMonthPicker: View {
             } label: {
                 HStack {
                     Image(systemName: selectedDay == 0 ? "checkmark.circle.fill" : "circle")
+                        .font(.body)
                         .foregroundColor(selectedDay == 0 ? .purple : .secondary)
                     Text(L("monthly.lastday"))
                         .font(.subheadline)
                         .foregroundColor(.primary)
                     Spacer()
                 }
-                .padding(.vertical, 8)
+                .padding(.vertical, 10)
                 .padding(.horizontal, 12)
-                .background(selectedDay == 0 ? Color.purple.opacity(0.1) : Color.clear)
-                .cornerRadius(8)
+                .background(selectedDay == 0 ? Color.purple.opacity(0.1) : Color.gray.opacity(0.1))
+                .cornerRadius(10)
             }
             .buttonStyle(.plain)
+            .accessibilityLabel(L("monthly.lastday"))
+            .accessibilityAddTraits(selectedDay == 0 ? [.isButton, .isSelected] : .isButton)
         }
     }
 }
@@ -589,32 +594,36 @@ struct NthWeekdayPicker: View {
                 .labelsHidden()
             }
 
-            // Weekday picker - row of buttons
+            // Weekday picker - flexible grid for Zoom mode
             VStack(alignment: .leading, spacing: 8) {
                 Text(L("monthly.weekday"))
-                    .font(.caption)
+                    .font(.subheadline)
                     .foregroundColor(.secondary)
 
-                HStack(spacing: 6) {
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 4), count: 7), spacing: 4) {
                     ForEach(Weekday.allCases) { day in
                         Button {
                             weekday = day
                         } label: {
                             Text(String(day.shortName.prefix(1)))
-                                .font(.caption.weight(.semibold))
-                                .frame(width: 36, height: 36)
+                                .font(.subheadline.weight(.semibold))
+                                .frame(minWidth: 36, minHeight: 36)
+                                .frame(maxWidth: .infinity)
+                                .aspectRatio(1, contentMode: .fit)
                                 .background(weekday == day ? Color.purple : Color.gray.opacity(0.2))
                                 .foregroundColor(weekday == day ? .white : .primary)
                                 .clipShape(Circle())
                         }
                         .buttonStyle(.plain)
+                        .accessibilityLabel(day.fullName)
+                        .accessibilityAddTraits(weekday == day ? [.isButton, .isSelected] : .isButton)
                     }
                 }
             }
 
             // Summary text
             Text(String(format: L("monthly.summary"), weekNumber.displayName, weekday.fullName))
-                .font(.caption)
+                .font(.subheadline)
                 .foregroundColor(.purple)
         }
     }

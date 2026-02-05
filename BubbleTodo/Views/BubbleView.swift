@@ -16,6 +16,7 @@ struct BubbleView: View {
     // Pre-computed values for better performance
     private let diameter: CGFloat
     private let bubbleColor: Color
+    private let isRecurring: Bool
 
     // Shared haptic feedback generator (prepared once)
     private static let longPressHaptic: UIImpactFeedbackGenerator = {
@@ -28,6 +29,7 @@ struct BubbleView: View {
         self.task = task
         self.onTap = onTap
         self.onLongPress = onLongPress
+        self.isRecurring = task.isRecurring
 
         // Pre-compute diameter
         let baseSize: CGFloat = 50
@@ -102,6 +104,12 @@ struct BubbleView: View {
                     )
             }
 
+            // Recurring indicator - two small curved lines at bottom
+            if isRecurring {
+                RecurringMark(diameter: diameter)
+                    .offset(y: diameter / 2 - 8)
+            }
+
             // Burst animation overlay when popping
             if isPopping {
                 BubblePopAnimation(color: bubbleColor, diameter: diameter)
@@ -157,6 +165,28 @@ struct BubbleView: View {
     }
 }
 
+// MARK: - Recurring Mark
+
+/// Simple two-line mark at the bottom of recurring task bubbles
+struct RecurringMark: View {
+    let diameter: CGFloat
+
+    private var lineWidth: CGFloat { max(12, diameter * 0.15) }
+    private var lineHeight: CGFloat { 2 }
+    private var spacing: CGFloat { 3 }
+
+    var body: some View {
+        VStack(spacing: spacing) {
+            RoundedRectangle(cornerRadius: 1)
+                .fill(Color.white.opacity(0.8))
+                .frame(width: lineWidth, height: lineHeight)
+            RoundedRectangle(cornerRadius: 1)
+                .fill(Color.white.opacity(0.8))
+                .frame(width: lineWidth, height: lineHeight)
+        }
+    }
+}
+
 #Preview {
     ZStack {
         LinearGradient(
@@ -166,10 +196,30 @@ struct BubbleView: View {
         )
         .ignoresSafeArea()
 
-        HStack(spacing: 30) {
-            BubbleView(task: TaskItem(title: "Quick", priority: 1, effort: 1), onTap: {}, onLongPress: {})
-            BubbleView(task: TaskItem(title: "Medium task", priority: 3, effort: 30), onTap: {}, onLongPress: {})
-            BubbleView(task: TaskItem(title: "Big project", priority: 5, effort: 120), onTap: {}, onLongPress: {})
+        VStack(spacing: 40) {
+            Text("One-off Tasks")
+                .font(.headline)
+            HStack(spacing: 30) {
+                BubbleView(task: TaskItem(title: "Quick", priority: 1, effort: 1), onTap: {}, onLongPress: {})
+                BubbleView(task: TaskItem(title: "Medium", priority: 3, effort: 30), onTap: {}, onLongPress: {})
+            }
+
+            Text("Recurring Tasks")
+                .font(.headline)
+            HStack(spacing: 30) {
+                BubbleView(task: {
+                    let t = TaskItem(title: "Daily", priority: 2, effort: 5)
+                    t.isRecurring = true
+                    t.recurringInterval = .daily
+                    return t
+                }(), onTap: {}, onLongPress: {})
+                BubbleView(task: {
+                    let t = TaskItem(title: "Weekly", priority: 4, effort: 60)
+                    t.isRecurring = true
+                    t.recurringInterval = .weekly
+                    return t
+                }(), onTap: {}, onLongPress: {})
+            }
         }
     }
 }

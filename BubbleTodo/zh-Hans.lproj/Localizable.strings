@@ -87,6 +87,15 @@
 "weeknumber.fourth" = "第四";
 "weeknumber.last" = "最后";
 
+/* Date Navigation */
+"date.today" = "今天";
+"date.tomorrow" = "明天";
+"date.yesterday" = "昨天";
+"date.today.short" = "今天";
+"date.select" = "选择日期";
+"date.go" = "前往";
+"date.notasks" = "没有计划的任务";
+
 /* Weekdays */
 "weekday.sun.short" = "周日";
 "weekday.mon.short" = "周一";

@@ -262,8 +262,9 @@ final class TaskItem {
         let now = Date()
         let calendar = Self.sharedCalendar
 
-        // Base score from priority (1-5) - scale to 1000-5000
-        var score = Double(priority) * 1000.0
+        // Base score from priority (1-5) - scale to 2000-10000
+        // Using 2000 per level ensures priority dominates over urgency bonuses
+        var score = Double(priority) * 2000.0
 
         // Add urgency from due date/time
         if let dueDate = dueDate {
@@ -341,6 +342,165 @@ final class TaskItem {
             // This ensures task shows all day on the due date, not just until the exact time
             let endOfDueDateDay = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: dueDate))!
             return now < endOfDueDateDay
+        }
+    }
+
+    /// Whether this task should be visible on a specific date
+    /// Used for browsing future dates
+    func shouldShowOnDate(_ targetDate: Date) -> Bool {
+        guard !isCompleted else { return false }
+
+        let calendar = Self.sharedCalendar
+        let startOfTargetDate = calendar.startOfDay(for: targetDate)
+        let endOfTargetDate = calendar.date(byAdding: .day, value: 1, to: startOfTargetDate)!
+        let now = Date()
+        let isTargetToday = calendar.isDateInToday(targetDate)
+        let isTargetInFuture = startOfTargetDate > calendar.startOfDay(for: now)
+
+        // No due date = only show on today (not future dates)
+        guard let taskDueDate = dueDate else {
+            return isTargetToday
+        }
+
+        let startOfDueDate = calendar.startOfDay(for: taskDueDate)
+
+        // Handle recurring tasks specially - check if pattern matches target date
+        if isRecurring, let interval = recurringInterval {
+            // For recurring tasks, check if the pattern would occur on target date
+            return wouldRecurOnDate(targetDate, interval: interval, calendar: calendar)
+        }
+
+        // Non-recurring tasks use original logic
+        let typeToUse = effectiveDueDateType
+
+        switch typeToUse {
+        case .on:
+            // "On" type: Show only on the specific day, or if overdue and viewing today/past
+            if startOfDueDate == startOfTargetDate {
+                return true // Target date matches due date
+            } else if startOfDueDate < startOfTargetDate && isTargetToday {
+                return true // Overdue and viewing today
+            }
+            return false
+
+        case .before:
+            // "Before" type: Show from creation until due date
+            if isTargetInFuture {
+                // For future dates, only show if due date is on or after target
+                return startOfDueDate >= startOfTargetDate
+            } else {
+                // For today or past, show if not yet past due date
+                return startOfTargetDate < endOfTargetDate && startOfDueDate >= startOfTargetDate
+            }
+        }
+    }
+
+    /// Check if a recurring task would occur on a specific date based on its pattern
+    private func wouldRecurOnDate(_ targetDate: Date, interval: RecurringInterval, calendar: Calendar) -> Bool {
+        guard let taskDueDate = dueDate else { return false }
+
+        let startOfTargetDate = calendar.startOfDay(for: targetDate)
+        let startOfDueDate = calendar.startOfDay(for: taskDueDate)
+
+        // If target is before the task's due date, don't show
+        // (the task hasn't "started" yet)
+        if startOfTargetDate < startOfDueDate {
+            return false
+        }
+
+        // If target matches current due date exactly, show it
+        if startOfTargetDate == startOfDueDate {
+            return true
+        }
+
+        switch interval {
+        case .daily:
+            // Daily tasks occur every day from their start date
+            return true
+
+        case .weekly:
+            let targetWeekday = calendar.component(.weekday, from: targetDate)
+
+            if !weeklyDays.isEmpty {
+                // Specific days selected (e.g., Mon, Wed, Fri)
+                return weeklyDays.contains(targetWeekday)
+            } else if recurringCount > 1 {
+                // X times per week - check if target is a valid slot
+                // Simplified: show on evenly spaced days
+                let dayInterval = 7 / recurringCount
+                let daysSinceStart = calendar.dateComponents([.day], from: startOfDueDate, to: startOfTargetDate).day ?? 0
+                let dayOfWeek = daysSinceStart % 7
+                // Check if this day falls on one of the slots
+                for slot in 0..<recurringCount {
+                    if dayOfWeek == (slot * dayInterval) % 7 {
+                        return true
+                    }
+                }
+                return false
+            } else {
+                // Once per week - same weekday as original
+                let originalWeekday = calendar.component(.weekday, from: taskDueDate)
+                return targetWeekday == originalWeekday
+            }
+
+        case .monthly:
+            let pattern = monthlyPattern ?? .timesPerMonth
+            let targetDay = calendar.component(.day, from: targetDate)
+            let targetMonth = calendar.component(.month, from: targetDate)
+            let targetYear = calendar.component(.year, from: targetDate)
+
+            switch pattern {
+            case .dayOfMonth:
+                if monthlyDayOfMonth == 0 {
+                    // Last day of month
+                    if let lastDay = lastDayOfMonth(year: targetYear, month: targetMonth, calendar: calendar) {
+                        return targetDay == lastDay
+                    }
+                    return false
+                } else {
+                    // Specific day of month
+                    let daysInMonth = lastDayOfMonth(year: targetYear, month: targetMonth, calendar: calendar) ?? 28
+                    let effectiveDay = min(monthlyDayOfMonth, daysInMonth)
+                    return targetDay == effectiveDay
+                }
+
+            case .nthWeekday:
+                // Check if target is the nth weekday of its month
+                let targetWeekday = calendar.component(.weekday, from: targetDate)
+                if targetWeekday != monthlyWeekday {
+                    return false
+                }
+                // Check which occurrence this is
+                let weekOfMonth = (targetDay - 1) / 7 + 1
+                if monthlyWeekNumber == 5 {
+                    // "Last" - check if this is the last occurrence
+                    if let nthDate = lastWeekdayOfMonth(year: targetYear, month: targetMonth, weekday: monthlyWeekday, calendar: calendar) {
+                        return calendar.isDate(targetDate, inSameDayAs: nthDate)
+                    }
+                    return false
+                } else {
+                    return weekOfMonth == monthlyWeekNumber
+                }
+
+            case .timesPerMonth:
+                if recurringCount <= 1 {
+                    // Once per month - same day of month as original
+                    let originalDay = calendar.component(.day, from: taskDueDate)
+                    let daysInMonth = lastDayOfMonth(year: targetYear, month: targetMonth, calendar: calendar) ?? 28
+                    let effectiveDay = min(originalDay, daysInMonth)
+                    return targetDay == effectiveDay
+                } else {
+                    // X times per month - evenly spaced
+                    let dayInterval = 30 / recurringCount
+                    for slot in 0..<recurringCount {
+                        let slotDay = 1 + (slot * dayInterval)
+                        if targetDay == slotDay {
+                            return true
+                        }
+                    }
+                    return false
+                }
+            }
         }
     }
 

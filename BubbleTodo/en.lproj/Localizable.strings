@@ -87,6 +87,15 @@
 "weeknumber.fourth" = "Fourth";
 "weeknumber.last" = "Last";
 
+/* Date Navigation */
+"date.today" = "Today";
+"date.tomorrow" = "Tomorrow";
+"date.yesterday" = "Yesterday";
+"date.today.short" = "Today";
+"date.select" = "Select Date";
+"date.go" = "Go";
+"date.notasks" = "No tasks scheduled";
+
 /* Weekdays */
 "weekday.sun.short" = "Sun";
 "weekday.mon.short" = "Mon";
