@@ -52,7 +52,6 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = FFB826932F1CBB1F006B0239 /* Build configuration list for PBXNativeTarget "BubbleTodo" */;
 			buildPhases = (
-				FFB826962F1CBB1F006B0239 /* Auto Increment Build Number */,
 				FFB826842F1CBB1D006B0239 /* Sources */,
 				FFB826852F1CBB1D006B0239 /* Frameworks */,
 				FFB826862F1CBB1D006B0239 /* Resources */,
@@ -119,28 +118,6 @@
 			);
 		};
 /* End PBXProject section */
-
-/* Begin PBXShellScriptBuildPhase section */
-		FFB826962F1CBB1F006B0239 /* Auto Increment Build Number */ = {
-			isa = PBXShellScriptBuildPhase;
-			alwaysOutOfDate = 1;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-			);
-			name = "Auto Increment Build Number";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "set -e\n\n# Only bump when archiving (ACTION=install)\nif [ \"${ACTION}\" != \"install\" ]; then\n  echo \"Not archiving; skip build bump.\"\n  exit 0\nfi\n\ncd \"${PROJECT_DIR}\"\n/usr/bin/xcrun agvtool next-version -all\n/usr/bin/xcrun agvtool what-version\n";
-		};
-/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXResourcesBuildPhase section */
 		FFB826862F1CBB1D006B0239 /* Resources */ = {
@@ -290,7 +267,6 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 4;
 				DEVELOPMENT_TEAM = TPWZ9R3L98;
-				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
@@ -326,7 +302,6 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 4;
 				DEVELOPMENT_TEAM = TPWZ9R3L98;
-				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
