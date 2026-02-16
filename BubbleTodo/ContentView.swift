@@ -38,11 +38,19 @@ struct ContentView: View {
             }
             .tag(1)
 
+            NavigationStack {
+                PastDueView()
+            }
+            .tabItem {
+                Label("Past Due", systemImage: "exclamationmark.circle.fill")
+            }
+            .tag(2)
+
             SettingsView()
                 .tabItem {
                     Label(L("nav.settings"), systemImage: "gearshape.fill")
                 }
-                .tag(2)
+                .tag(3)
         }
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .active {
@@ -70,6 +78,72 @@ struct ContentView: View {
 
         Task {
             await notificationManager.scheduleNotificationWithTasks(todayTasks)
+        }
+    }
+}
+
+struct PastDueView: View {
+    @Environment(\.modelContext) private var modelContext
+    @Query(filter: #Predicate<TaskItem> { !$0.isCompleted },
+           sort: \TaskItem.createdAt)
+    private var allTasks: [TaskItem]
+
+    @State private var editingTask: TaskItem?
+
+    private var sortedPastDueTasks: [TaskItem] {
+        allTasks
+            .filter { $0.shouldShowInPastDue }
+            .sorted { $0.sortScore > $1.sortScore }
+    }
+
+    var body: some View {
+        ZStack {
+            Color(.systemGroupedBackground).ignoresSafeArea()
+
+            if sortedPastDueTasks.isEmpty {
+                VStack(spacing: 12) {
+                    Image(systemName: "checkmark.circle")
+                        .font(.system(size: 48))
+                        .foregroundColor(.secondary)
+
+                    Text("No past due tasks")
+                        .font(.title3)
+                        .foregroundColor(.secondary)
+                }
+            } else {
+                GeometryReader { geometry in
+                    ScrollView {
+                        BubbleLayoutView(
+                            tasks: sortedPastDueTasks,
+                            containerWidth: geometry.size.width,
+                            containerHeight: geometry.size.height,
+                            dayProgress: 1.0,
+                            onTap: { task in
+                                completeTask(task)
+                            },
+                            onLongPress: { task in
+                                editingTask = task
+                            }
+                        )
+                        .padding(.bottom, 30)
+                    }
+                }
+            }
+        }
+        .navigationTitle("Past Due")
+        .navigationBarTitleDisplayMode(.inline)
+        .sheet(item: $editingTask) { task in
+            EditTaskSheet(task: task)
+        }
+    }
+
+    private func completeTask(_ task: TaskItem) {
+        withAnimation {
+            task.markComplete()
+
+            if let nextTask = task.createNextRecurringTask() {
+                modelContext.insert(nextTask)
+            }
         }
     }
 }

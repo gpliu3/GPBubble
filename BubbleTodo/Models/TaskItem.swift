@@ -337,6 +337,16 @@ final class TaskItem {
         }
     }
 
+    /// Whether this task should appear in Past Due.
+    /// Uses day-level due semantics (a task becomes past due after the due day ends).
+    var shouldShowInPastDue: Bool {
+        guard !isCompleted, let dueDate = dueDate else { return false }
+
+        let calendar = Self.sharedCalendar
+        let endOfDueDateDay = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: dueDate))!
+        return Date() >= endOfDueDateDay
+    }
+
     /// Whether this task should be visible on a specific date
     /// Used for browsing future dates
     func shouldShowOnDate(_ targetDate: Date) -> Bool {

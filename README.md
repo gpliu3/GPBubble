@@ -16,6 +16,7 @@ A delightful iOS todo app where tasks float as interactive bubbles. Pop them to 
 - **Recurring Tasks**: Daily, weekly, or monthly recurrence with optional specific times
 - **Priority Levels**: 5 priority levels with color-coded indicators (Low to Critical)
 - **Effort Tracking**: Time-based effort estimates (1min, 5min, 15min, 30min, 1hr, 2hr)
+- **Past Due View**: Dedicated tab for overdue tasks, sorted by the same priority/urgency rules
 
 ### Advanced Monthly Recurrence (Outlook-style)
 - **Specific Day**: Repeat on a specific day of the month (e.g., every 5th, 15th, or last day)
@@ -154,6 +155,7 @@ open BubbleTodo.xcodeproj
 - **Tap date**: Open calendar picker to jump to any date
 - **Tap "Today"**: Return to current day (appears when viewing other dates)
 - **Automatic Day Rollover**: If the app stays open overnight, the Today view automatically refreshes to the new day
+- **Past Due Tab**: Access overdue tasks separately from Today/Done
 
 ### Completing Tasks
 - **Tap** a bubble to complete the task
@@ -166,6 +168,13 @@ open BubbleTodo.xcodeproj
 - **Long press** to edit completed tasks
 - **Swipe left** to delete
 - **Swipe right** to restore (if not past due)
+
+### Managing Past Due Tasks
+- Navigate to **Past Due** screen from tab bar (between Done and Settings)
+- View all overdue tasks sorted by the same priority/urgency logic as bubbles
+- **Tap** a bubble to complete
+- **Long press** a bubble to edit
+- Bubble layout is static (no time-of-day rising animation)
 
 ### Settings
 - **Notifications**: Enable and configure 1-4 daily reminders
