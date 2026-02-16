@@ -6,9 +6,11 @@
 import SwiftUI
 import SwiftData
 import Combine
+import UIKit
 
 struct MainBubbleView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.scenePhase) private var scenePhase
     @Query(filter: #Predicate<TaskItem> { !$0.isCompleted },
            sort: \TaskItem.createdAt)
     private var allTasks: [TaskItem]
@@ -22,6 +24,8 @@ struct MainBubbleView: View {
     @State private var selectedDate = Date()
     @State private var showingDatePicker = false
     @State private var dragOffset: CGFloat = 0
+    @State private var followsToday = true
+    @State private var lastObservedDayStart = Calendar.current.startOfDay(for: Date())
 
     // Undo state
     @State private var recentlyCompletedTask: TaskItem?
@@ -163,6 +167,25 @@ struct MainBubbleView: View {
         }
         .onReceive(timeUpdateTimer) { _ in
             currentTime = Date()
+            handleDayChangeIfNeeded()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .NSCalendarDayChanged)) { _ in
+            handleDayChangeIfNeeded(forceRefresh: true)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.significantTimeChangeNotification)) { _ in
+            handleDayChangeIfNeeded(forceRefresh: true)
+        }
+        .onAppear {
+            followsToday = isViewingToday
+            lastObservedDayStart = calendar.startOfDay(for: Date())
+        }
+        .onChange(of: selectedDate) { _, newDate in
+            followsToday = calendar.isDateInToday(newDate)
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .active {
+                handleDayChangeIfNeeded(forceRefresh: true)
+            }
         }
     }
 
@@ -171,11 +194,25 @@ struct MainBubbleView: View {
             if let newDate = calendar.date(byAdding: .day, value: days, to: selectedDate) {
                 selectedDate = newDate
             }
+            followsToday = calendar.isDateInToday(selectedDate)
         }
     }
 
     private func goToToday() {
         withAnimation(.easeInOut(duration: 0.2)) {
+            selectedDate = Date()
+            followsToday = true
+        }
+    }
+
+    private func handleDayChangeIfNeeded(forceRefresh: Bool = false) {
+        let todayStart = calendar.startOfDay(for: Date())
+        let didDayChange = todayStart != lastObservedDayStart
+
+        guard didDayChange || forceRefresh else { return }
+        lastObservedDayStart = todayStart
+
+        if followsToday {
             selectedDate = Date()
         }
     }

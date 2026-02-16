@@ -324,18 +324,10 @@ final class TaskItem {
 
         switch typeToUse {
         case .on:
-            // "On" type: Only show on the specific day
+            // "On" type: Only show on the specific day (not overdue days)
             let startOfDueDate = calendar.startOfDay(for: dueDate)
             let endOfDueDate = calendar.date(byAdding: .day, value: 1, to: startOfDueDate)!
-
-            // Show if today is the due date OR if overdue
-            if now >= startOfDueDate && now < endOfDueDate {
-                return true // Today is the due date
-            } else if now >= endOfDueDate {
-                return true // Overdue
-            } else {
-                return false // Before the due date - don't show
-            }
+            return now >= startOfDueDate && now < endOfDueDate
 
         case .before:
             // "Before" type: Show from creation until end of deadline day
@@ -375,13 +367,8 @@ final class TaskItem {
 
         switch typeToUse {
         case .on:
-            // "On" type: Show only on the specific day, or if overdue and viewing today/past
-            if startOfDueDate == startOfTargetDate {
-                return true // Target date matches due date
-            } else if startOfDueDate < startOfTargetDate && isTargetToday {
-                return true // Overdue and viewing today
-            }
-            return false
+            // "On" type: Show only on the specific due day
+            return startOfDueDate == startOfTargetDate
 
         case .before:
             // "Before" type: Show from creation until due date

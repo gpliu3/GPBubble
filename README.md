@@ -110,7 +110,7 @@ Tasks are scored based on:
 - **Age**: Slight boost for older tasks without due dates
 
 ### Task Visibility
-- **One-off "On" type**: Shows only on the due date and when overdue
+- **One-off "On" type**: Shows only on the due date
 - **One-off "Before" type**: Shows from creation until end of due date day
 - **Recurring**: Shows only on scheduled occurrence days
 - **No due date**: Shows only on today's view
@@ -153,6 +153,7 @@ open BubbleTodo.xcodeproj
 - **Swipe right**: View previous day's tasks
 - **Tap date**: Open calendar picker to jump to any date
 - **Tap "Today"**: Return to current day (appears when viewing other dates)
+- **Automatic Day Rollover**: If the app stays open overnight, the Today view automatically refreshes to the new day
 
 ### Completing Tasks
 - **Tap** a bubble to complete the task
