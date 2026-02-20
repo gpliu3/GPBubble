@@ -15,6 +15,7 @@ struct EditTaskSheet: View {
     @State private var title: String
     @State private var priority: Int
     @State private var effort: Double
+    @State private var customHours: Int
     @State private var hasDueDate: Bool
     @State private var dueDate: Date
     @State private var dueDateType: DueDateType
@@ -79,6 +80,8 @@ struct EditTaskSheet: View {
         _title = State(initialValue: task.title)
         _priority = State(initialValue: task.priority)
         _effort = State(initialValue: task.effort)
+        let effortHours = max(Int(task.effort.rounded()) / 60, 1)
+        _customHours = State(initialValue: min(effortHours, 12))
         _hasDueDate = State(initialValue: task.dueDate != nil && !task.isRecurring)
         _dueDate = State(initialValue: task.dueDate ?? Date())
         _dueDateType = State(initialValue: task.effectiveDueDateType)
@@ -148,46 +151,39 @@ struct EditTaskSheet: View {
 
                 // Effort Section (Time-based)
                 Section {
-                    VStack(spacing: 8) {
-                        // First row: 1 min, 5 min, 15 min
-                        HStack(spacing: 8) {
-                            ForEach(Array(TaskItem.effortOptions.prefix(3)), id: \.value) { option in
-                                Button {
-                                    effort = option.value
-                                } label: {
-                                    Text(option.label)
-                                        .font(.subheadline.weight(.medium))
-                                        .frame(maxWidth: .infinity)
-                                        .padding(.vertical, 8)
-                                        .background(effort == option.value ? Color.blue : Color.gray.opacity(0.2))
-                                        .foregroundColor(effort == option.value ? .white : .primary)
-                                        .cornerRadius(8)
-                                }
-                                .buttonStyle(.plain)
-                                .accessibilityLabel(option.label)
-                                .accessibilityAddTraits(effort == option.value ? [.isButton, .isSelected] : .isButton)
+                    VStack(spacing: 12) {
+                        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                            ForEach(TaskItem.effortOptions, id: \.value) { option in
+                                effortOptionButton(
+                                    label: option.label,
+                                    value: option.value
+                                )
                             }
                         }
 
-                        // Second row: 30 min, 1 hour, 2 hours
-                        HStack(spacing: 8) {
-                            ForEach(Array(TaskItem.effortOptions.dropFirst(3)), id: \.value) { option in
-                                Button {
-                                    effort = option.value
-                                } label: {
-                                    Text(option.label)
-                                        .font(.subheadline.weight(.medium))
-                                        .frame(maxWidth: .infinity)
-                                        .padding(.vertical, 8)
-                                        .background(effort == option.value ? Color.blue : Color.gray.opacity(0.2))
-                                        .foregroundColor(effort == option.value ? .white : .primary)
-                                        .cornerRadius(8)
+                        HStack(spacing: 10) {
+                            Text("Custom hours")
+                                .font(.subheadline.weight(.medium))
+                                .foregroundColor(.secondary)
+
+                            Picker("Hours", selection: $customHours) {
+                                ForEach(1...12, id: \.self) { value in
+                                    Text("\(value)h").tag(value)
                                 }
-                                .buttonStyle(.plain)
-                                .accessibilityLabel(option.label)
-                                .accessibilityAddTraits(effort == option.value ? [.isButton, .isSelected] : .isButton)
+                            }
+                            .pickerStyle(.wheel)
+                            .frame(height: 90)
+                            .frame(maxWidth: .infinity)
+                            .onChange(of: customHours) { _, newValue in
+                                effort = Double(newValue * 60)
                             }
                         }
+                        .padding(.horizontal, 2)
+                        .padding(.vertical, 6)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(effort >= 180 && Int(effort.rounded()) % 60 == 0 ? AppTheme.secondary.opacity(0.12) : Color(.secondarySystemBackground))
+                        )
                     }
                 } header: {
                     Text(L("effort.title"))
@@ -405,6 +401,12 @@ struct EditTaskSheet: View {
                 Text(L("task.delete.message"))
             }
         }
+        .onAppear {
+            syncCustomHoursFromEffort()
+        }
+        .onChange(of: effort) { _, _ in
+            syncCustomHoursFromEffort()
+        }
     }
 
     private func priorityColor(for priority: Int) -> Color {
@@ -420,6 +422,32 @@ struct EditTaskSheet: View {
 
     private func priorityLabel(for priority: Int) -> String {
         priorityOptions.first { $0.value == priority }?.label ?? "High"
+    }
+
+    @ViewBuilder
+    private func effortOptionButton(label: String, value: Double) -> some View {
+        Button {
+            effort = value
+        } label: {
+            Text(label)
+                .font(.subheadline.weight(.medium))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 9)
+                .background(
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(effort == value ? AppTheme.primary : Color(.secondarySystemBackground))
+                )
+                .foregroundColor(effort == value ? .white : .primary)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(label)
+        .accessibilityAddTraits(effort == value ? [.isButton, .isSelected] : .isButton)
+    }
+
+    private func syncCustomHoursFromEffort() {
+        let roundedEffort = Int(effort.rounded())
+        guard roundedEffort >= 60, roundedEffort % 60 == 0 else { return }
+        customHours = min(max(roundedEffort / 60, 1), 12)
     }
 
     private func saveChanges() {

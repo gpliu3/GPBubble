@@ -5,7 +5,7 @@ A delightful iOS todo app where tasks float as interactive bubbles. Pop them to 
 ## Features
 
 ### Bubble-Based Task Visualization
-- **Dynamic Sizing**: Bubble size reflects task effort (1 min to 2 hours)
+- **Dynamic Sizing**: Bubble size reflects task effort (5 min and up, including multi-hour tasks)
 - **Smart Ordering**: Tasks arranged by priority and due time
 - **Floating Animation**: Bubbles gently bob and rise as the day progresses
 - **Satisfying Interactions**: Pop bubbles with delightful animations and haptic feedback
@@ -15,7 +15,7 @@ A delightful iOS todo app where tasks float as interactive bubbles. Pop them to 
 - **One-off Tasks**: Set specific deadlines with "Before" or "On" due date types
 - **Recurring Tasks**: Daily, weekly, or monthly recurrence with optional specific times
 - **Priority Levels**: 5 priority levels with color-coded indicators (Low to Critical)
-- **Effort Tracking**: Time-based effort estimates (1min, 5min, 15min, 30min, 1hr, 2hr)
+- **Effort Tracking**: Time-based effort estimates (5min, 15min, 30min, 1hr, 2hr, plus custom X-hour wheel)
 - **Past Due View**: Dedicated tab for overdue tasks, sorted by the same priority/urgency rules
 
 ### Advanced Monthly Recurrence (Outlook-style)
@@ -41,6 +41,7 @@ A delightful iOS todo app where tasks float as interactive bubbles. Pop them to 
 - **Completed Tasks View**: Review your accomplishments with filtering options
 - **Zoom Mode Support**: UI adapts to iPhone's Zoom display accessibility setting
 - **Localization**: Full support for multiple languages including English, Chinese (Simplified & Traditional), Japanese, Korean, Spanish, French, German, and Portuguese
+- **Refined Visual Theme**: Softer gradients, cleaner card surfaces, and unified accent colors across tabs
 
 ### Time-Based UI
 - **Day Progress Indicator**: Background gradient changes from morning to evening

@@ -148,6 +148,14 @@ struct CompletedTasksView: View {
                 }
             }
         }
+        .scrollContentBackground(.hidden)
+        .background(
+            LinearGradient(
+                colors: [AppTheme.backgroundTop, AppTheme.backgroundBottom],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
         .navigationTitle(L("completed.title"))
         .navigationBarTitleDisplayMode(.large)
         .sheet(item: $editingTask) { task in
@@ -197,7 +205,7 @@ struct CompletedTasksView: View {
         .padding(12)
         .background(
             RoundedRectangle(cornerRadius: 12)
-                .fill(Color(.secondarySystemBackground))
+                .fill(AppTheme.surface)
         )
         .padding(.horizontal)
         .padding(.top, 4)
@@ -267,7 +275,7 @@ struct StatBox: View {
         .padding(.horizontal, 8)
         .background(
             RoundedRectangle(cornerRadius: 10)
-                .fill(Color(.tertiarySystemBackground))
+                .fill(AppTheme.surface)
         )
     }
 }

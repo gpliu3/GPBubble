@@ -9,6 +9,16 @@ import SwiftUI
 import SwiftData
 import UserNotifications
 
+enum AppTheme {
+    static let primary = Color(red: 0.11, green: 0.43, blue: 0.83)
+    static let secondary = Color(red: 0.03, green: 0.65, blue: 0.62)
+    static let accent = Color(red: 0.95, green: 0.62, blue: 0.27)
+
+    static let backgroundTop = Color(red: 0.95, green: 0.98, blue: 1.0)
+    static let backgroundBottom = Color(red: 0.90, green: 0.95, blue: 0.97)
+    static let surface = Color.white.opacity(0.92)
+}
+
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.scenePhase) private var scenePhase
@@ -52,6 +62,7 @@ struct ContentView: View {
                 }
                 .tag(3)
         }
+        .tint(AppTheme.primary)
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .active {
                 // Clear badge when app becomes active
@@ -98,18 +109,28 @@ struct PastDueView: View {
 
     var body: some View {
         ZStack {
-            Color(.systemGroupedBackground).ignoresSafeArea()
+            LinearGradient(
+                colors: [AppTheme.backgroundTop, AppTheme.backgroundBottom],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
 
             if sortedPastDueTasks.isEmpty {
                 VStack(spacing: 12) {
                     Image(systemName: "checkmark.circle")
                         .font(.system(size: 48))
-                        .foregroundColor(.secondary)
+                        .foregroundColor(AppTheme.secondary)
 
                     Text("No past due tasks")
                         .font(.title3)
                         .foregroundColor(.secondary)
                 }
+                .padding(28)
+                .background(
+                    RoundedRectangle(cornerRadius: 18)
+                        .fill(AppTheme.surface)
+                )
             } else {
                 GeometryReader { geometry in
                     ScrollView {

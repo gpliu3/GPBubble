@@ -230,14 +230,21 @@ final class TaskItem {
 
     /// Effort displayed as time label
     var effortLabel: String {
-        switch Int(effort) {
-        case 0...1: return "1m"
-        case 2...5: return "5m"
+        let minutes = max(Int(effort.rounded()), 5)
+
+        switch minutes {
+        case 0...5: return "5m"
         case 6...15: return "15m"
         case 16...30: return "30m"
-        case 31...60: return "1h"
-        case 61...120: return "2h"
-        default: return "\(Int(effort))m"
+        case 31...59: return "\(minutes)m"
+        default:
+            if minutes % 60 == 0 {
+                return "\(minutes / 60)h"
+            }
+
+            let hours = minutes / 60
+            let remainder = minutes % 60
+            return "\(hours)h \(remainder)m"
         }
     }
 
@@ -248,7 +255,6 @@ final class TaskItem {
 
     /// Static effort values (non-localized keys)
     private static let effortValues: [(value: Double, key: String)] = [
-        (1, "effort.1min"),
         (5, "effort.5min"),
         (15, "effort.15min"),
         (30, "effort.30min"),

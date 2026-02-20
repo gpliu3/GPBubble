@@ -39,12 +39,12 @@ struct BubbleView: View {
 
         // Pre-compute color
         switch task.priority {
-        case 1: self.bubbleColor = .green
-        case 2: self.bubbleColor = .yellow
-        case 3: self.bubbleColor = .orange
-        case 4: self.bubbleColor = .red
-        case 5: self.bubbleColor = .purple
-        default: self.bubbleColor = .orange
+        case 1: self.bubbleColor = Color(red: 0.20, green: 0.68, blue: 0.52)
+        case 2: self.bubbleColor = Color(red: 0.30, green: 0.74, blue: 0.63)
+        case 3: self.bubbleColor = Color(red: 0.24, green: 0.57, blue: 0.86)
+        case 4: self.bubbleColor = Color(red: 0.92, green: 0.54, blue: 0.28)
+        case 5: self.bubbleColor = Color(red: 0.80, green: 0.31, blue: 0.30)
+        default: self.bubbleColor = AppTheme.primary
         }
     }
 
@@ -55,7 +55,7 @@ struct BubbleView: View {
                 .fill(
                     RadialGradient(
                         gradient: Gradient(colors: [
-                            bubbleColor.opacity(0.7),
+                            bubbleColor.opacity(0.82),
                             bubbleColor
                         ]),
                         center: .topLeading,
@@ -190,9 +190,9 @@ struct RecurringMark: View {
 #Preview {
     ZStack {
         LinearGradient(
-            colors: [Color(.systemBackground), Color(.systemGray6)],
-            startPoint: .top,
-            endPoint: .bottom
+            colors: [AppTheme.backgroundTop, AppTheme.backgroundBottom],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
         )
         .ignoresSafeArea()
 
@@ -200,7 +200,7 @@ struct RecurringMark: View {
             Text("One-off Tasks")
                 .font(.headline)
             HStack(spacing: 30) {
-                BubbleView(task: TaskItem(title: "Quick", priority: 1, effort: 1), onTap: {}, onLongPress: {})
+                BubbleView(task: TaskItem(title: "Quick", priority: 1, effort: 5), onTap: {}, onLongPress: {})
                 BubbleView(task: TaskItem(title: "Medium", priority: 3, effort: 30), onTap: {}, onLongPress: {})
             }
 

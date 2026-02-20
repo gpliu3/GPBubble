@@ -79,11 +79,11 @@ struct MainBubbleView: View {
             // Background gradient - changes with time of day
             LinearGradient(
                 gradient: Gradient(colors: [
-                    Color(.systemBackground),
-                    isViewingToday && dayProgress > 0.7 ? Color.orange.opacity(0.1) : Color(.systemGray6)
+                    AppTheme.backgroundTop,
+                    isViewingToday && dayProgress > 0.7 ? AppTheme.accent.opacity(0.20) : AppTheme.backgroundBottom
                 ]),
-                startPoint: .top,
-                endPoint: .bottom
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
             )
             .ignoresSafeArea()
 
@@ -233,6 +233,11 @@ struct MainBubbleView: View {
                     .foregroundColor(.secondary)
             }
         }
+        .padding(26)
+        .background(
+            RoundedRectangle(cornerRadius: 18)
+                .fill(AppTheme.surface)
+        )
     }
 
     private var bubbleGridView: some View {
@@ -267,13 +272,13 @@ struct MainBubbleView: View {
                     Circle()
                         .fill(
                             LinearGradient(
-                                gradient: Gradient(colors: [.blue, .purple]),
+                                gradient: Gradient(colors: [AppTheme.secondary, AppTheme.primary]),
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             )
                         )
                 )
-                .shadow(color: .blue.opacity(0.3), radius: 6, x: 0, y: 3)
+                .shadow(color: AppTheme.primary.opacity(0.35), radius: 8, x: 0, y: 4)
         }
         .accessibilityLabel(L("accessibility.add.task"))
     }
