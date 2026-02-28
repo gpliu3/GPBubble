@@ -10,13 +10,13 @@ import SwiftData
 import UserNotifications
 
 enum AppTheme {
-    static let primary = Color(red: 0.11, green: 0.43, blue: 0.83)
-    static let secondary = Color(red: 0.03, green: 0.65, blue: 0.62)
-    static let accent = Color(red: 0.95, green: 0.62, blue: 0.27)
+    static let primary = Color(red: 0.09, green: 0.39, blue: 0.76)
+    static let secondary = Color(red: 0.05, green: 0.62, blue: 0.55)
+    static let accent = Color(red: 0.91, green: 0.56, blue: 0.22)
 
-    static let backgroundTop = Color(red: 0.95, green: 0.98, blue: 1.0)
-    static let backgroundBottom = Color(red: 0.90, green: 0.95, blue: 0.97)
-    static let surface = Color.white.opacity(0.92)
+    static let backgroundTop = Color(red: 0.96, green: 0.97, blue: 0.99)
+    static let backgroundBottom = Color(red: 0.89, green: 0.93, blue: 0.95)
+    static let surface = Color.white.opacity(0.94)
 }
 
 struct ContentView: View {
@@ -41,26 +41,34 @@ struct ContentView: View {
             .tag(0)
 
             NavigationStack {
+                PendingTasksListView()
+            }
+            .tabItem {
+                Label(L("nav.pending"), systemImage: "list.bullet.rectangle.portrait.fill")
+            }
+            .tag(1)
+
+            NavigationStack {
                 CompletedTasksView()
             }
             .tabItem {
                 Label(L("nav.done"), systemImage: "checkmark.circle.fill")
             }
-            .tag(1)
+            .tag(2)
 
             NavigationStack {
                 PastDueView()
             }
             .tabItem {
-                Label("Past Due", systemImage: "exclamationmark.circle.fill")
+                Label(L("nav.pastdue"), systemImage: "exclamationmark.circle.fill")
             }
-            .tag(2)
+            .tag(3)
 
             SettingsView()
                 .tabItem {
                     Label(L("nav.settings"), systemImage: "gearshape.fill")
                 }
-                .tag(3)
+                .tag(4)
         }
         .tint(AppTheme.primary)
         .onChange(of: scenePhase) { _, newPhase in
@@ -151,7 +159,7 @@ struct PastDueView: View {
                 }
             }
         }
-        .navigationTitle("Past Due")
+        .navigationTitle(L("nav.pastdue"))
         .navigationBarTitleDisplayMode(.inline)
         .sheet(item: $editingTask) { task in
             EditTaskSheet(task: task)

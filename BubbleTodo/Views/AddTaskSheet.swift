@@ -46,58 +46,76 @@ struct AddTaskSheet: View {
                 // Title Section
                 Section {
                     TextField(L("task.placeholder"), text: $title)
-                        .font(.body)
+                        .font(.title3.weight(.medium))
+                        .textFieldStyle(.plain)
+                        .padding(18)
+                        .taskEditorCard()
                 } header: {
                     Text(L("task.title"))
                         .textCase(nil)
                 }
+                .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets(top: 6, leading: 20, bottom: 6, trailing: 20))
 
                 // Priority Section
                 Section {
-                    Picker(L("priority.title"), selection: $priority) {
-                        ForEach(priorityOptions, id: \.value) { option in
-                            HStack {
-                                Circle()
-                                    .fill(option.color)
-                                    .frame(width: 12, height: 12)
-                                Text(option.label)
-                            }
-                            .tag(option.value)
-                        }
-                    }
-                    .pickerStyle(.menu)
-
-                    // Visual priority indicator
-                    HStack(spacing: 8) {
-                        ForEach(1...5, id: \.self) { level in
-                            Circle()
-                                .fill(level <= priority ? priorityColor(for: priority) : Color.gray.opacity(0.3))
-                                .frame(minWidth: 28, minHeight: 28)
-                                .frame(maxWidth: 36, maxHeight: 36)
-                                .onTapGesture {
-                                    withAnimation(.easeInOut(duration: 0.2)) {
-                                        priority = level
-                                    }
+                    VStack(alignment: .leading, spacing: 18) {
+                        Picker(L("priority.title"), selection: $priority) {
+                            ForEach(priorityOptions, id: \.value) { option in
+                                HStack {
+                                    Circle()
+                                        .fill(option.color)
+                                        .frame(width: 12, height: 12)
+                                    Text(option.label)
                                 }
-                                .accessibilityLabel(String(format: L("accessibility.priority.indicator"), level))
-                                .accessibilityAddTraits(level == priority ? [.isButton, .isSelected] : .isButton)
+                                .tag(option.value)
+                            }
                         }
-                        Spacer()
-                        Text(priorityLabel(for: priority))
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
+                        .pickerStyle(.menu)
+
+                        VStack(alignment: .leading, spacing: 12) {
+                            HStack(spacing: 8) {
+                                ForEach(1...5, id: \.self) { level in
+                                    Circle()
+                                        .fill(level <= priority ? priorityColor(for: priority) : Color.gray.opacity(0.18))
+                                        .frame(minWidth: 30, minHeight: 30)
+                                        .frame(maxWidth: 38, maxHeight: 38)
+                                        .onTapGesture {
+                                            withAnimation(.easeInOut(duration: 0.2)) {
+                                                priority = level
+                                            }
+                                        }
+                                        .accessibilityLabel(String(format: L("accessibility.priority.indicator"), level))
+                                        .accessibilityAddTraits(level == priority ? [.isButton, .isSelected] : .isButton)
+                                }
+                                Spacer()
+                                Text(priorityLabel(for: priority))
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundColor(priorityColor(for: priority))
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 6)
+                                    .background(priorityColor(for: priority).opacity(0.12))
+                                    .clipShape(Capsule())
+                            }
+
+                            Text(L("priority.footer"))
+                                .font(.footnote)
+                                .foregroundColor(.secondary)
+                        }
+                        .accessibilityElement(children: .contain)
                     }
-                    .accessibilityElement(children: .contain)
+                    .padding(18)
+                    .taskEditorCard()
                 } header: {
                     Text(L("priority.title"))
-                } footer: {
-                    Text(L("priority.footer"))
                 }
+                .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets(top: 6, leading: 20, bottom: 6, trailing: 20))
 
                 // Effort Section (Time-based)
                 Section {
-                    VStack(spacing: 12) {
-                        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                    VStack(alignment: .leading, spacing: 16) {
+                        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
                             ForEach(TaskItem.effortOptions, id: \.value) { option in
                                 effortOptionButton(
                                     label: option.label,
@@ -106,35 +124,41 @@ struct AddTaskSheet: View {
                             }
                         }
 
-                        HStack(spacing: 10) {
-                            Text("Custom hours")
-                                .font(.subheadline.weight(.medium))
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text(L("effort.customhours"))
+                                .font(.subheadline.weight(.semibold))
                                 .foregroundColor(.secondary)
 
-                            Picker("Hours", selection: $customHours) {
+                            Picker(L("effort.customhours"), selection: $customHours) {
                                 ForEach(1...12, id: \.self) { value in
                                     Text("\(value)h").tag(value)
                                 }
                             }
                             .pickerStyle(.wheel)
-                            .frame(height: 90)
                             .frame(maxWidth: .infinity)
+                            .frame(height: 110)
+                            .clipped()
                             .onChange(of: customHours) { _, newValue in
                                 effort = Double(newValue * 60)
                             }
                         }
-                        .padding(.horizontal, 2)
-                        .padding(.vertical, 6)
+                        .padding(14)
                         .background(
-                            RoundedRectangle(cornerRadius: 12)
+                            RoundedRectangle(cornerRadius: 18, style: .continuous)
                                 .fill(effort >= 180 && Int(effort.rounded()) % 60 == 0 ? AppTheme.secondary.opacity(0.12) : Color(.secondarySystemBackground))
                         )
+
+                        Text(L("effort.footer"))
+                            .font(.footnote)
+                            .foregroundColor(.secondary)
                     }
+                    .padding(18)
+                    .taskEditorCard()
                 } header: {
                     Text(L("effort.title"))
-                } footer: {
-                    Text(L("effort.footer"))
                 }
+                .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets(top: 6, leading: 20, bottom: 6, trailing: 20))
 
                 // Task Type Section - Two bordered boxes
                 Section {
@@ -144,7 +168,7 @@ struct AddTaskSheet: View {
                             isSelected: hasDueDate,
                             title: L("task.oneoff"),
                             icon: "calendar",
-                            accentColor: .blue
+                            accentColor: AppTheme.primary
                         ) {
                             withAnimation(.easeInOut(duration: 0.2)) {
                                 hasDueDate = true
@@ -164,13 +188,13 @@ struct AddTaskSheet: View {
                                                 Text(type.displayName)
                                                     .font(.subheadline.weight(.medium))
                                                     .padding(.horizontal, 16)
-                                                    .padding(.vertical, 8)
+                                                    .padding(.vertical, 10)
                                                     .frame(maxWidth: .infinity)
                                                     .background(
-                                                        RoundedRectangle(cornerRadius: 8)
+                                                        RoundedRectangle(cornerRadius: 12, style: .continuous)
                                                             .fill(dueDateType == type ?
-                                                                  (type == .on ? Color.green : Color.orange) :
-                                                                    Color.gray.opacity(0.15))
+                                                                  (type == .on ? AppTheme.secondary : AppTheme.accent) :
+                                                                    Color(.secondarySystemBackground))
                                                     )
                                                     .foregroundColor(dueDateType == type ? .white : .primary)
                                             }
@@ -201,7 +225,7 @@ struct AddTaskSheet: View {
                             isSelected: isRecurring,
                             title: L("recurring.toggle"),
                             icon: "repeat",
-                            accentColor: .purple
+                            accentColor: AppTheme.secondary
                         ) {
                             withAnimation(.easeInOut(duration: 0.2)) {
                                 isRecurring = true
@@ -271,8 +295,21 @@ struct AddTaskSheet: View {
                     Text(L("task.schedule"))
                         .textCase(nil)
                 }
+                .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets(top: 6, leading: 20, bottom: 6, trailing: 20))
             }
             .listRowSpacing(8)
+            .listSectionSpacing(18)
+            .scrollContentBackground(.hidden)
+            .background(
+                LinearGradient(
+                    colors: [AppTheme.backgroundTop, AppTheme.backgroundBottom],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .ignoresSafeArea()
+            )
+            .tint(AppTheme.primary)
             .navigationTitle(L("task.new"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -322,9 +359,9 @@ struct AddTaskSheet: View {
             Text(label)
                 .font(.subheadline.weight(.medium))
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 9)
+                .padding(.vertical, 12)
                 .background(
-                    RoundedRectangle(cornerRadius: 10)
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
                         .fill(effort == value ? AppTheme.primary : Color(.secondarySystemBackground))
                 )
                 .foregroundColor(effort == value ? .white : .primary)
@@ -474,7 +511,11 @@ struct TaskTypeBox<Content: View>: View {
                     Image(systemName: icon)
                         .font(.body.weight(.medium))
                         .foregroundColor(isSelected ? accentColor : .secondary)
-                        .frame(width: 24)
+                        .frame(width: 34, height: 34)
+                        .background(
+                            Circle()
+                                .fill(isSelected ? accentColor.opacity(0.12) : Color(.secondarySystemBackground))
+                        )
 
                     // Title
                     Text(title)
@@ -484,25 +525,45 @@ struct TaskTypeBox<Content: View>: View {
                     Spacer()
                 }
                 .padding(.vertical, 12)
-                .padding(.horizontal, 14)
+                .padding(.horizontal, 16)
             }
             .buttonStyle(.plain)
 
             // Content (shown when selected)
             if isSelected {
                 content
-                    .padding(.horizontal, 14)
-                    .padding(.bottom, 14)
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 16)
             }
         }
         .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color(.secondarySystemGroupedBackground))
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .fill(isSelected ? accentColor.opacity(0.08) : AppTheme.surface)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(isSelected ? accentColor.opacity(0.5) : Color.gray.opacity(0.2), lineWidth: isSelected ? 2 : 1)
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .stroke(isSelected ? accentColor.opacity(0.45) : Color.white.opacity(0.55), lineWidth: isSelected ? 2 : 1)
         )
+    }
+}
+
+private struct TaskEditorCardModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .background(
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .fill(AppTheme.surface)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .stroke(.white.opacity(0.55), lineWidth: 1)
+            )
+    }
+}
+
+extension View {
+    func taskEditorCard() -> some View {
+        modifier(TaskEditorCardModifier())
     }
 }
 

@@ -16,6 +16,7 @@ A delightful iOS todo app where tasks float as interactive bubbles. Pop them to 
 - **Recurring Tasks**: Daily, weekly, or monthly recurrence with optional specific times
 - **Priority Levels**: 5 priority levels with color-coded indicators (Low to Critical)
 - **Effort Tracking**: Time-based effort estimates (5min, 15min, 30min, 1hr, 2hr, plus custom X-hour wheel)
+- **Pending List View**: Review every active task in a single list with quick swipe-to-complete and tap-to-edit actions
 - **Past Due View**: Dedicated tab for overdue tasks, sorted by the same priority/urgency rules
 
 ### Advanced Monthly Recurrence (Outlook-style)
@@ -39,6 +40,7 @@ A delightful iOS todo app where tasks float as interactive bubbles. Pop them to 
 - **Undo Support**: 3-second undo window after completing tasks
 - **Sound & Haptics**: Satisfying audio and tactile feedback
 - **Completed Tasks View**: Review your accomplishments with filtering options
+- **Modern Task Editor**: Card-based add/edit sheets with denser spacing and better Zoom mode readability
 - **Zoom Mode Support**: UI adapts to iPhone's Zoom display accessibility setting
 - **Localization**: Full support for multiple languages including English, Chinese (Simplified & Traditional), Japanese, Korean, Spanish, French, German, and Portuguese
 - **Refined Visual Theme**: Softer gradients, cleaner card surfaces, and unified accent colors across tabs
@@ -74,6 +76,7 @@ BubbleTodo/
 │   ├── BubblePopAnimation.swift # Pop animation effects
 │   ├── AddTaskSheet.swift      # New task creation with monthly patterns
 │   ├── EditTaskSheet.swift     # Task editing
+│   ├── PendingTasksListView.swift # All active tasks in list form
 │   ├── CompletedTasksView.swift # Completed tasks history
 │   └── SettingsView.swift      # App settings
 ├── Utilities/
@@ -156,7 +159,8 @@ open BubbleTodo.xcodeproj
 - **Tap date**: Open calendar picker to jump to any date
 - **Tap "Today"**: Return to current day (appears when viewing other dates)
 - **Automatic Day Rollover**: If the app stays open overnight, the Today view automatically refreshes to the new day
-- **Past Due Tab**: Access overdue tasks separately from Today/Done
+- **Pending Tab**: Review all active tasks in a single scrollable list
+- **Past Due Tab**: Access overdue tasks separately from Pending/Done
 
 ### Completing Tasks
 - **Tap** a bubble to complete the task
@@ -171,11 +175,17 @@ open BubbleTodo.xcodeproj
 - **Swipe right** to restore (if not past due)
 
 ### Managing Past Due Tasks
-- Navigate to **Past Due** screen from tab bar (between Done and Settings)
+- Navigate to **Past Due** screen from tab bar
 - View all overdue tasks sorted by the same priority/urgency logic as bubbles
 - **Tap** a bubble to complete
 - **Long press** a bubble to edit
 - Bubble layout is static (no time-of-day rising animation)
+
+### Managing Pending Tasks
+- Navigate to **Pending** screen from tab bar
+- View overdue, today, upcoming, and someday tasks in one place
+- **Tap** a row to edit a task
+- **Swipe** to complete a task without opening the editor
 
 ### Settings
 - **Notifications**: Enable and configure 1-4 daily reminders

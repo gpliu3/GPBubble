@@ -156,3 +156,14 @@
 "accessibility.priority.indicator" = "Prioridade %d de 5";
 "accessibility.effort.button" = "%@, toque para selecionar";
 "accessibility.weekday.button" = "%@, %@";
+"nav.pending" = "Pending";
+"nav.pastdue" = "Past Due";
+"pending.title" = "Pending Tasks";
+"pending.empty.title" = "Nothing pending";
+"pending.empty.subtitle" = "All active tasks are cleared right now.";
+"pending.section.overdue" = "Overdue";
+"pending.section.today" = "Today";
+"pending.section.upcoming" = "Upcoming";
+"pending.section.someday" = "Someday";
+"pending.complete" = "Complete";
+"effort.customhours" = "Custom hours";
