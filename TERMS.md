@@ -1,14 +1,14 @@
-# Terms of Service for BubbleTodo
+# Terms of Service for GP Bubble
 
 **Last Updated:** January 2026
 
 ## Acceptance of Terms
 
-By downloading, installing, or using BubbleTodo ("the app"), you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use the app.
+By downloading, installing, or using GP Bubble ("the app"), you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use the app.
 
 ## Description of Service
 
-BubbleTodo is a mobile task management application that allows you to:
+GP Bubble is a mobile task management application that allows you to:
 - Create and manage tasks with priorities and due dates
 - Set recurring tasks
 - Track completed tasks
@@ -16,18 +16,18 @@ BubbleTodo is a mobile task management application that allows you to:
 
 ## User Responsibilities
 
-When using BubbleTodo, you agree to:
+When using GP Bubble, you agree to:
 - Use the app only for lawful purposes
 - Not attempt to reverse engineer, modify, or tamper with the app
 - Not use the app in any way that could damage, disable, or impair it
 
 ## Intellectual Property
 
-BubbleTodo and its original content, features, and functionality are owned by the developer and are protected by international copyright, trademark, and other intellectual property laws.
+GP Bubble and its original content, features, and functionality are owned by the developer and are protected by international copyright, trademark, and other intellectual property laws.
 
 ## Disclaimer of Warranties
 
-BubbleTodo is provided "as is" and "as available" without any warranties of any kind, either express or implied, including but not limited to:
+GP Bubble is provided "as is" and "as available" without any warranties of any kind, either express or implied, including but not limited to:
 - Merchantability
 - Fitness for a particular purpose
 - Non-infringement
@@ -45,7 +45,7 @@ arising out of or in connection with your use of the app.
 
 ## Data and Privacy
 
-Your use of BubbleTodo is also governed by our [Privacy Policy](PRIVACY.md). Please review it to understand how we handle your information.
+Your use of GP Bubble is also governed by our [Privacy Policy](PRIVACY.md). Please review it to understand how we handle your information.
 
 ## Changes to Terms
 
@@ -65,7 +65,7 @@ If any provision of these Terms is held to be invalid or unenforceable, the rema
 
 ## Entire Agreement
 
-These Terms constitute the entire agreement between you and the developer regarding the use of BubbleTodo and supersede any prior agreements.
+These Terms constitute the entire agreement between you and the developer regarding the use of GP Bubble and supersede any prior agreements.
 
 ## Contact
 

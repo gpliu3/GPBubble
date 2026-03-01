@@ -1,6 +1,6 @@
 //
 //  PendingTasksListView.swift
-//  BubbleTodo
+//  GPBubble
 //
 
 import SwiftUI

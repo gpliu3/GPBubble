@@ -1,6 +1,6 @@
 //
 //  BubblePopAnimation.swift
-//  BubbleTodo
+//  GPBubble
 //
 
 import SwiftUI

@@ -1,33 +1,36 @@
 //
-//  AddTaskSheet.swift
-//  BubbleTodo
+//  EditTaskSheet.swift
+//  GPBubble
 //
 
 import SwiftUI
 import SwiftData
 
-struct AddTaskSheet: View {
+struct EditTaskSheet: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
 
-    @State private var title = ""
-    @State private var priority = 3
-    @State private var effort: Double = 15.0 // Default to 15 minutes
-    @State private var customHours = 3
-    @State private var hasDueDate = true // Default to having a due date (one-off task)
-    @State private var dueDate = Date() // Default to today + current time
-    @State private var dueDateType: DueDateType = .before
-    @State private var isRecurring = false
-    @State private var recurringInterval: RecurringInterval = .daily
-    @State private var recurringCount = 1
-    @State private var selectedWeekdays: Set<Weekday> = []
-    @State private var useSpecificDays = false
-    @State private var monthlyPattern: MonthlyPattern = .timesPerMonth
-    @State private var monthlyDayOfMonth: Int = 1
-    @State private var monthlyWeekNumber: WeekNumber = .first
-    @State private var monthlyWeekday: Weekday = .monday
-    @State private var hasRecurringTime = false // Whether recurring task has specific time
-    @State private var recurringTime = Date() // Time for recurring task occurrence
+    @Bindable var task: TaskItem
+
+    @State private var title: String
+    @State private var priority: Int
+    @State private var effort: Double
+    @State private var customHours: Int
+    @State private var hasDueDate: Bool
+    @State private var dueDate: Date
+    @State private var dueDateType: DueDateType
+    @State private var isRecurring: Bool
+    @State private var recurringInterval: RecurringInterval
+    @State private var recurringCount: Int
+    @State private var selectedWeekdays: Set<Weekday>
+    @State private var useSpecificDays: Bool
+    @State private var monthlyPattern: MonthlyPattern
+    @State private var monthlyDayOfMonth: Int
+    @State private var monthlyWeekNumber: WeekNumber
+    @State private var monthlyWeekday: Weekday
+    @State private var hasRecurringTime: Bool
+    @State private var recurringTime: Date
+    @State private var showingDeleteConfirmation = false
     @ObservedObject private var localizationManager = LocalizationManager.shared
 
     private var priorityOptions: [(value: Int, label: String, color: Color)] {
@@ -38,6 +41,61 @@ struct AddTaskSheet: View {
             (value: 4, label: L("priority.urgent"), color: Color.red),
             (value: 5, label: L("priority.critical"), color: Color.purple)
         ]
+    }
+
+    /// Explanation of why the urgency weight increased
+    private var urgencyExplanation: String {
+        let now = Date()
+
+        if let dueDate = task.dueDate {
+            if now > dueDate {
+                // Overdue
+                let hoursOverdue = now.timeIntervalSince(dueDate) / 3600
+                if hoursOverdue < 24 {
+                    return L("info.urgency.overdue.hours")
+                } else {
+                    let days = Int(hoursOverdue / 24)
+                    return String(format: L("info.urgency.overdue.days"), days)
+                }
+            } else if task.effectiveDueDateType == .before {
+                let hoursUntilDue = dueDate.timeIntervalSince(now) / 3600
+                if hoursUntilDue < 24 {
+                    return L("info.urgency.due.today")
+                } else if hoursUntilDue < 72 {
+                    return L("info.urgency.due.soon")
+                }
+            }
+        } else {
+            // No due date - age-based
+            let hoursSinceCreation = now.timeIntervalSince(task.createdAt) / 3600
+            let days = Int(hoursSinceCreation / 24)
+            return String(format: L("info.urgency.age"), days)
+        }
+
+        return ""
+    }
+
+    init(task: TaskItem) {
+        self.task = task
+        _title = State(initialValue: task.title)
+        _priority = State(initialValue: task.priority)
+        _effort = State(initialValue: task.effort)
+        let effortHours = max(Int(task.effort.rounded()) / 60, 1)
+        _customHours = State(initialValue: min(effortHours, 12))
+        _hasDueDate = State(initialValue: task.dueDate != nil && !task.isRecurring)
+        _dueDate = State(initialValue: task.dueDate ?? Date())
+        _dueDateType = State(initialValue: task.effectiveDueDateType)
+        _isRecurring = State(initialValue: task.isRecurring)
+        _recurringInterval = State(initialValue: task.recurringInterval ?? .daily)
+        _recurringCount = State(initialValue: task.recurringCount)
+        _selectedWeekdays = State(initialValue: Set(task.weeklyDays.compactMap { Weekday(rawValue: $0) }))
+        _useSpecificDays = State(initialValue: !task.weeklyDays.isEmpty)
+        _monthlyPattern = State(initialValue: task.monthlyPattern ?? .timesPerMonth)
+        _monthlyDayOfMonth = State(initialValue: task.monthlyDayOfMonth)
+        _monthlyWeekNumber = State(initialValue: WeekNumber(rawValue: task.monthlyWeekNumber) ?? .first)
+        _monthlyWeekday = State(initialValue: Weekday(rawValue: task.monthlyWeekday) ?? .monday)
+        _hasRecurringTime = State(initialValue: task.isRecurring && task.dueDate != nil)
+        _recurringTime = State(initialValue: task.dueDate ?? Date())
     }
 
     var body: some View {
@@ -297,6 +355,58 @@ struct AddTaskSheet: View {
                 }
                 .listRowBackground(Color.clear)
                 .listRowInsets(EdgeInsets(top: 6, leading: 20, bottom: 6, trailing: 20))
+
+                // Task Info Section
+                Section {
+                    VStack(alignment: .leading, spacing: 14) {
+                        LabeledContent(L("info.created")) {
+                            Text(task.createdAt.formatted(.dateTime.month().day().hour().minute()))
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                        }
+
+                        if task.effectiveWeight > 1.0 {
+                            VStack(alignment: .leading, spacing: 8) {
+                                LabeledContent(L("info.urgency")) {
+                                    Text(String(format: "%.1fx", task.effectiveWeight))
+                                        .font(.subheadline.weight(.semibold))
+                                        .foregroundColor(AppTheme.accent)
+                                }
+
+                                Text(urgencyExplanation)
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                    }
+                    .padding(18)
+                    .taskEditorCard()
+                } header: {
+                    Text(L("info.title"))
+                } footer: {
+                    if task.effectiveWeight > 1.0 {
+                        Text(L("info.urgency.footer"))
+                    }
+                }
+                .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets(top: 6, leading: 20, bottom: 6, trailing: 20))
+
+                // Delete Section
+                Section {
+                    Button(role: .destructive) {
+                        showingDeleteConfirmation = true
+                    } label: {
+                        HStack {
+                            Spacer()
+                            Label(L("task.delete"), systemImage: "trash")
+                            Spacer()
+                        }
+                        .padding(18)
+                        .taskEditorCard()
+                    }
+                }
+                .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets(top: 6, leading: 20, bottom: 6, trailing: 20))
             }
             .listRowSpacing(8)
             .listSectionSpacing(18)
@@ -310,7 +420,7 @@ struct AddTaskSheet: View {
                 .ignoresSafeArea()
             )
             .tint(AppTheme.primary)
-            .navigationTitle(L("task.new"))
+            .navigationTitle(L("task.edit"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -321,11 +431,23 @@ struct AddTaskSheet: View {
 
                 ToolbarItem(placement: .confirmationAction) {
                     Button(L("task.save")) {
-                        saveTask()
+                        saveChanges()
                     }
                     .disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                     .fontWeight(.semibold)
                 }
+            }
+            .confirmationDialog(
+                L("task.delete.confirm"),
+                isPresented: $showingDeleteConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button(L("task.delete"), role: .destructive) {
+                    deleteTask()
+                }
+                Button(L("task.cancel"), role: .cancel) {}
+            } message: {
+                Text(L("task.delete.message"))
             }
         }
         .onAppear {
@@ -359,9 +481,9 @@ struct AddTaskSheet: View {
             Text(label)
                 .font(.subheadline.weight(.medium))
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 12)
+                .padding(.vertical, 9)
                 .background(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    RoundedRectangle(cornerRadius: 10)
                         .fill(effort == value ? AppTheme.primary : Color(.secondarySystemBackground))
                 )
                 .foregroundColor(effort == value ? .white : .primary)
@@ -377,12 +499,12 @@ struct AddTaskSheet: View {
         customHours = min(max(roundedEffort / 60, 1), 12)
     }
 
-    private func saveTask() {
+    private func saveChanges() {
         let weeklyDays: [Int] = useSpecificDays && recurringInterval == .weekly
             ? selectedWeekdays.map { $0.rawValue }
             : []
 
-        // For recurring tasks, set initial dueDate based on hasRecurringTime
+        // For recurring tasks, set dueDate based on hasRecurringTime
         // For one-time tasks, use the user-selected due date
         let taskDueDate: Date?
         let taskDueDateType: DueDateType
@@ -393,13 +515,13 @@ struct AddTaskSheet: View {
                 // User specified a time - combine today's date with selected time
                 let calendar = Calendar.current
                 let timeComponents = calendar.dateComponents([.hour, .minute], from: recurringTime)
-                var dateComponents = calendar.dateComponents([.year, .month, .day], from: Date())
+                var dateComponents = calendar.dateComponents([.year, .month, .day], from: task.dueDate ?? Date())
                 dateComponents.hour = timeComponents.hour
                 dateComponents.minute = timeComponents.minute
-                taskDueDate = calendar.date(from: dateComponents) ?? Date()
+                taskDueDate = calendar.date(from: dateComponents) ?? (task.dueDate ?? Date())
             } else {
-                // No specific time - start today
-                taskDueDate = Date()
+                // No specific time - keep existing or start today
+                taskDueDate = task.dueDate ?? Date()
             }
             taskDueDateType = .on // Recurring tasks always use "on" type
         } else {
@@ -408,315 +530,34 @@ struct AddTaskSheet: View {
             taskDueDateType = dueDateType
         }
 
-        let newTask = TaskItem(
-            title: title.trimmingCharacters(in: .whitespacesAndNewlines),
-            priority: priority,
-            effort: effort,
-            dueDate: taskDueDate,
-            dueDateType: taskDueDateType,
-            isRecurring: isRecurring,
-            recurringInterval: isRecurring ? recurringInterval : nil,
-            recurringCount: recurringCount,
-            weeklyDays: weeklyDays,
-            monthlyPattern: isRecurring && recurringInterval == .monthly ? monthlyPattern : nil,
-            monthlyDayOfMonth: monthlyDayOfMonth,
-            monthlyWeekNumber: monthlyWeekNumber.rawValue,
-            monthlyWeekday: monthlyWeekday.rawValue
-        )
+        task.title = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        task.priority = priority
+        task.effort = effort
+        task.dueDate = taskDueDate
+        task.dueDateType = taskDueDateType
+        task.isRecurring = isRecurring
+        task.recurringInterval = isRecurring ? recurringInterval : nil
+        task.recurringCount = recurringCount
+        task.weeklyDays = weeklyDays
+        task.monthlyPattern = isRecurring && recurringInterval == .monthly ? monthlyPattern : nil
+        task.monthlyDayOfMonth = monthlyDayOfMonth
+        task.monthlyWeekNumber = monthlyWeekNumber.rawValue
+        task.monthlyWeekday = monthlyWeekday.rawValue
 
-        modelContext.insert(newTask)
-
-        // Play satisfying sound when adding task
+        // Play subtle success sound
         SoundManager.playSuccessWithHaptic()
 
         dismiss()
     }
-}
 
-// MARK: - Weekday Picker
-
-struct WeekdayPicker: View {
-    @Binding var selectedDays: Set<Weekday>
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(L("recurring.selectdays"))
-                .font(.caption)
-                .foregroundColor(.secondary)
-
-            // Use flexible grid for better Zoom mode support
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 4), count: 7), spacing: 4) {
-                ForEach(Weekday.allCases) { day in
-                    Button {
-                        if selectedDays.contains(day) {
-                            selectedDays.remove(day)
-                        } else {
-                            selectedDays.insert(day)
-                        }
-                    } label: {
-                        Text(String(day.shortName.prefix(1)))
-                            .font(.subheadline.weight(.semibold))
-                            .frame(minWidth: 36, minHeight: 36)
-                            .frame(maxWidth: .infinity)
-                            .aspectRatio(1, contentMode: .fit)
-                            .background(selectedDays.contains(day) ? Color.blue : Color.gray.opacity(0.2))
-                            .foregroundColor(selectedDays.contains(day) ? .white : .primary)
-                            .clipShape(Circle())
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(day.fullName)
-                    .accessibilityAddTraits(selectedDays.contains(day) ? [.isButton, .isSelected] : .isButton)
-                }
-            }
-
-            if !selectedDays.isEmpty {
-                Text(selectedDays.sorted { $0.rawValue < $1.rawValue }.map { $0.shortName }.joined(separator: ", "))
-                    .font(.subheadline)
-                    .foregroundColor(.blue)
-            }
-        }
-        .padding(.vertical, 4)
-    }
-}
-
-// MARK: - Task Type Box
-
-struct TaskTypeBox<Content: View>: View {
-    let isSelected: Bool
-    let title: String
-    let icon: String
-    let accentColor: Color
-    let onSelect: () -> Void
-    @ViewBuilder let content: Content
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            // Header with radio button
-            Button(action: onSelect) {
-                HStack(spacing: 12) {
-                    // Radio button indicator
-                    ZStack {
-                        Circle()
-                            .stroke(isSelected ? accentColor : Color.gray.opacity(0.4), lineWidth: 2)
-                            .frame(width: 22, height: 22)
-
-                        if isSelected {
-                            Circle()
-                                .fill(accentColor)
-                                .frame(width: 12, height: 12)
-                        }
-                    }
-
-                    // Icon
-                    Image(systemName: icon)
-                        .font(.body.weight(.medium))
-                        .foregroundColor(isSelected ? accentColor : .secondary)
-                        .frame(width: 34, height: 34)
-                        .background(
-                            Circle()
-                                .fill(isSelected ? accentColor.opacity(0.12) : Color(.secondarySystemBackground))
-                        )
-
-                    // Title
-                    Text(title)
-                        .font(.body.weight(.medium))
-                        .foregroundColor(isSelected ? .primary : .secondary)
-
-                    Spacer()
-                }
-                .padding(.vertical, 12)
-                .padding(.horizontal, 16)
-            }
-            .buttonStyle(.plain)
-
-            // Content (shown when selected)
-            if isSelected {
-                content
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 16)
-            }
-        }
-        .background(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(isSelected ? accentColor.opacity(0.08) : AppTheme.surface)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .stroke(isSelected ? accentColor.opacity(0.45) : Color.white.opacity(0.55), lineWidth: isSelected ? 2 : 1)
-        )
-    }
-}
-
-private struct TaskEditorCardModifier: ViewModifier {
-    func body(content: Content) -> some View {
-        content
-            .background(
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .fill(AppTheme.surface)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .stroke(.white.opacity(0.55), lineWidth: 1)
-            )
-    }
-}
-
-extension View {
-    func taskEditorCard() -> some View {
-        modifier(TaskEditorCardModifier())
-    }
-}
-
-// MARK: - Monthly Pattern Picker
-
-struct MonthlyPatternPicker: View {
-    @Binding var pattern: MonthlyPattern
-    @Binding var dayOfMonth: Int
-    @Binding var weekNumber: WeekNumber
-    @Binding var weekday: Weekday
-    @Binding var timesPerMonth: Int
-
-    var body: some View {
-        VStack(spacing: 12) {
-            // Pattern type selector
-            Picker(L("monthly.pattern.title"), selection: $pattern.animation()) {
-                ForEach(MonthlyPattern.allCases, id: \.self) { p in
-                    Text(p.displayName).tag(p)
-                }
-            }
-            .pickerStyle(.menu)
-
-            // Pattern-specific options
-            switch pattern {
-            case .dayOfMonth:
-                DayOfMonthPicker(selectedDay: $dayOfMonth)
-
-            case .nthWeekday:
-                NthWeekdayPicker(weekNumber: $weekNumber, weekday: $weekday)
-
-            case .timesPerMonth:
-                Stepper(String(format: L("recurring.timespermonth"), timesPerMonth), value: $timesPerMonth, in: 1...30)
-                    .font(.subheadline)
-            }
-        }
-    }
-}
-
-// MARK: - Day of Month Picker
-
-struct DayOfMonthPicker: View {
-    @Binding var selectedDay: Int
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(L("monthly.day.select"))
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-
-            // Grid of day buttons (7 columns) - flexible for Zoom mode
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 6), count: 7), spacing: 6) {
-                ForEach(1...31, id: \.self) { day in
-                    Button {
-                        selectedDay = day
-                    } label: {
-                        Text("\(day)")
-                            .font(.subheadline.weight(.medium))
-                            .frame(minWidth: 32, minHeight: 32)
-                            .frame(maxWidth: .infinity)
-                            .aspectRatio(1, contentMode: .fit)
-                            .background(selectedDay == day ? Color.purple : Color.gray.opacity(0.2))
-                            .foregroundColor(selectedDay == day ? .white : .primary)
-                            .clipShape(Circle())
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(String(format: L("monthly.day.format"), "\(day)"))
-                    .accessibilityAddTraits(selectedDay == day ? [.isButton, .isSelected] : .isButton)
-                }
-            }
-
-            // "Last day" option
-            Button {
-                selectedDay = 0
-            } label: {
-                HStack {
-                    Image(systemName: selectedDay == 0 ? "checkmark.circle.fill" : "circle")
-                        .font(.body)
-                        .foregroundColor(selectedDay == 0 ? .purple : .secondary)
-                    Text(L("monthly.lastday"))
-                        .font(.subheadline)
-                        .foregroundColor(.primary)
-                    Spacer()
-                }
-                .padding(.vertical, 10)
-                .padding(.horizontal, 12)
-                .background(selectedDay == 0 ? Color.purple.opacity(0.1) : Color.gray.opacity(0.1))
-                .cornerRadius(10)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(L("monthly.lastday"))
-            .accessibilityAddTraits(selectedDay == 0 ? [.isButton, .isSelected] : .isButton)
-        }
-    }
-}
-
-// MARK: - Nth Weekday Picker
-
-struct NthWeekdayPicker: View {
-    @Binding var weekNumber: WeekNumber
-    @Binding var weekday: Weekday
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            // Week number picker
-            HStack {
-                Text(L("monthly.weeknumber"))
-                    .font(.subheadline)
-                Spacer()
-                Picker("", selection: $weekNumber) {
-                    ForEach(WeekNumber.allCases) { wn in
-                        Text(wn.displayName).tag(wn)
-                    }
-                }
-                .pickerStyle(.menu)
-                .labelsHidden()
-            }
-
-            // Weekday picker - flexible grid for Zoom mode
-            VStack(alignment: .leading, spacing: 8) {
-                Text(L("monthly.weekday"))
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-
-                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 4), count: 7), spacing: 4) {
-                    ForEach(Weekday.allCases) { day in
-                        Button {
-                            weekday = day
-                        } label: {
-                            Text(String(day.shortName.prefix(1)))
-                                .font(.subheadline.weight(.semibold))
-                                .frame(minWidth: 36, minHeight: 36)
-                                .frame(maxWidth: .infinity)
-                                .aspectRatio(1, contentMode: .fit)
-                                .background(weekday == day ? Color.purple : Color.gray.opacity(0.2))
-                                .foregroundColor(weekday == day ? .white : .primary)
-                                .clipShape(Circle())
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel(day.fullName)
-                        .accessibilityAddTraits(weekday == day ? [.isButton, .isSelected] : .isButton)
-                    }
-                }
-            }
-
-            // Summary text
-            Text(String(format: L("monthly.summary"), weekNumber.displayName, weekday.fullName))
-                .font(.subheadline)
-                .foregroundColor(.purple)
-        }
+    private func deleteTask() {
+        modelContext.delete(task)
+        dismiss()
     }
 }
 
 #Preview {
-    AddTaskSheet()
+    let task = TaskItem(title: "Sample Task", priority: 3)
+    return EditTaskSheet(task: task)
         .modelContainer(for: TaskItem.self, inMemory: true)
 }

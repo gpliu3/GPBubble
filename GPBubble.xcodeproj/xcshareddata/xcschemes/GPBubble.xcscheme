@@ -15,9 +15,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "FFB826872F1CBB1D006B0239"
-               BuildableName = "BubbleTodo.app"
-               BlueprintName = "BubbleTodo"
-               ReferencedContainer = "container:BubbleTodo.xcodeproj">
+               BuildableName = "GPBubble.app"
+               BlueprintName = "GPBubble"
+               ReferencedContainer = "container:GPBubble.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -44,9 +44,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "FFB826872F1CBB1D006B0239"
-            BuildableName = "BubbleTodo.app"
-            BlueprintName = "BubbleTodo"
-            ReferencedContainer = "container:BubbleTodo.xcodeproj">
+            BuildableName = "GPBubble.app"
+            BlueprintName = "GPBubble"
+            ReferencedContainer = "container:GPBubble.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -61,9 +61,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "FFB826872F1CBB1D006B0239"
-            BuildableName = "BubbleTodo.app"
-            BlueprintName = "BubbleTodo"
-            ReferencedContainer = "container:BubbleTodo.xcodeproj">
+            BuildableName = "GPBubble.app"
+            BlueprintName = "GPBubble"
+            ReferencedContainer = "container:GPBubble.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>
@@ -83,9 +83,9 @@
                   <BuildableReference
                      BuildableIdentifier = "primary"
                      BlueprintIdentifier = "FFB826872F1CBB1D006B0239"
-                     BuildableName = "BubbleTodo.app"
-                     BlueprintName = "BubbleTodo"
-                     ReferencedContainer = "container:BubbleTodo.xcodeproj">
+                     BuildableName = "GPBubble.app"
+                     BlueprintName = "GPBubble"
+                     ReferencedContainer = "container:GPBubble.xcodeproj">
                   </BuildableReference>
                </EnvironmentBuildable>
             </ActionContent>

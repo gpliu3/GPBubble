@@ -1,6 +1,6 @@
 //
 //  SettingsView.swift
-//  BubbleTodo
+//  GPBubble
 //
 
 import SwiftUI
@@ -97,7 +97,7 @@ struct SettingsView: View {
                     }
 
                     // Privacy Policy link
-                    Link(destination: URL(string: "https://github.com/gengpuliu/BubbleTodo/blob/main/PRIVACY.md")!) {
+                    Link(destination: URL(string: "https://github.com/gpliu3/GPBubble/blob/main/PRIVACY.md")!) {
                         HStack {
                             Text(L("settings.privacy"))
                             Spacer()
@@ -109,7 +109,7 @@ struct SettingsView: View {
                     .foregroundColor(.primary)
 
                     // Terms of Service link
-                    Link(destination: URL(string: "https://github.com/gengpuliu/BubbleTodo/blob/main/TERMS.md")!) {
+                    Link(destination: URL(string: "https://github.com/gpliu3/GPBubble/blob/main/TERMS.md")!) {
                         HStack {
                             Text(L("settings.terms"))
                             Spacer()

@@ -1,4 +1,4 @@
-# BubbleTodo
+# GP Bubble
 
 A delightful iOS todo app where tasks float as interactive bubbles. Pop them to complete, watch them rise throughout the day, and keep your tasks organized with a playful, intuitive interface.
 
@@ -67,7 +67,7 @@ A delightful iOS todo app where tasks float as interactive bubbles. Pop them to 
 ## Project Structure
 
 ```
-BubbleTodo/
+GPBubble/
 ├── Models/
 │   └── TaskItem.swift          # Core task model with SwiftData
 ├── Views/
@@ -129,13 +129,13 @@ Tasks are scored based on:
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/BubbleTodo.git
-cd BubbleTodo
+git clone https://github.com/gpliu3/GPBubble.git
+cd GPBubble
 ```
 
 2. Open in Xcode:
 ```bash
-open BubbleTodo.xcodeproj
+open GPBubble.xcodeproj
 ```
 
 3. Build and run on your device or simulator (iOS 18.6+)
@@ -194,7 +194,7 @@ open BubbleTodo.xcodeproj
 
 ## Design Philosophy
 
-BubbleTodo transforms the mundane task list into a playful, engaging experience:
+GP Bubble transforms the mundane task list into a playful, engaging experience:
 
 - **Visual Metaphor**: Bubbles represent tasks floating to the surface of your attention
 - **Size as Priority**: Bigger bubbles (longer tasks) naturally draw more attention

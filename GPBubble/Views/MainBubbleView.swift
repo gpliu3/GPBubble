@@ -1,6 +1,6 @@
 //
 //  MainBubbleView.swift
-//  BubbleTodo
+//  GPBubble
 //
 
 import SwiftUI

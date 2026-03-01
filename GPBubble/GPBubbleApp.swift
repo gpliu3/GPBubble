@@ -1,6 +1,6 @@
 //
-//  BubbleTodoApp.swift
-//  BubbleTodo
+//  GPBubbleApp.swift
+//  GPBubble
 //
 //  Created by Gengpu Liu on 18/1/26.
 //
@@ -10,7 +10,7 @@ import SwiftData
 import os.log
 
 @main
-struct BubbleTodoApp: App {
+struct GPBubbleApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
     private let modelContainer: ModelContainer?

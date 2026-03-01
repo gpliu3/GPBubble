@@ -1,6 +1,6 @@
 //
 //  AppDelegate.swift
-//  BubbleTodo
+//  GPBubble
 //
 
 import UIKit

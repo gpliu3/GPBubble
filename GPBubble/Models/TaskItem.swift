@@ -1,6 +1,6 @@
 //
 //  TaskItem.swift
-//  BubbleTodo
+//  GPBubble
 //
 
 import Foundation

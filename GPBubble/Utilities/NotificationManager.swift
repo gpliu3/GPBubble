@@ -1,6 +1,6 @@
 //
 //  NotificationManager.swift
-//  BubbleTodo
+//  GPBubble
 //
 
 import Foundation

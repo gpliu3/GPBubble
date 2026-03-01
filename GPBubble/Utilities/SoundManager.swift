@@ -1,6 +1,6 @@
 //
 //  SoundManager.swift
-//  BubbleTodo
+//  GPBubble
 //
 
 import AVFoundation

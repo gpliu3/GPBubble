@@ -1,6 +1,6 @@
 //
 //  ContentView.swift
-//  BubbleTodo
+//  GPBubble
 //
 //  Created by Gengpu Liu on 18/1/26.
 //

@@ -1,6 +1,6 @@
 //
 //  LocalizationManager.swift
-//  BubbleTodo
+//  GPBubble
 //
 
 import Foundation

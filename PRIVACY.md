@@ -1,16 +1,16 @@
-# Privacy Policy for BubbleTodo
+# Privacy Policy for GP Bubble
 
 **Last Updated:** January 2026
 
 ## Introduction
 
-BubbleTodo ("we", "our", or "the app") is committed to protecting your privacy. This Privacy Policy explains how we handle your information when you use our mobile application.
+GP Bubble ("we", "our", or "the app") is committed to protecting your privacy. This Privacy Policy explains how we handle your information when you use our mobile application.
 
 ## Information Collection
 
 ### Data Stored Locally
 
-BubbleTodo stores all your task data **locally on your device only**. We do not collect, transmit, or store any of your personal information on external servers.
+GP Bubble stores all your task data **locally on your device only**. We do not collect, transmit, or store any of your personal information on external servers.
 
 The following data is stored locally on your device:
 - Task titles and descriptions
@@ -29,7 +29,7 @@ We do **not** collect:
 
 ## Notifications
 
-BubbleTodo may request permission to send you local notifications for task reminders. These notifications are:
+GP Bubble may request permission to send you local notifications for task reminders. These notifications are:
 - Generated entirely on your device
 - Not sent to or processed by any external server
 - Completely optional and can be disabled in Settings
@@ -55,7 +55,7 @@ You have complete control over your data:
 
 ## Children's Privacy
 
-BubbleTodo does not knowingly collect any information from children. The app does not require or collect personal information from any users.
+GP Bubble does not knowingly collect any information from children. The app does not require or collect personal information from any users.
 
 ## Changes to This Policy
 

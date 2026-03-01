@@ -1,6 +1,6 @@
 //
 //  CompletedTasksView.swift
-//  BubbleTodo
+//  GPBubble
 //
 
 import SwiftUI
