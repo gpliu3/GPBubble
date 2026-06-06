@@ -14,56 +14,54 @@ struct PendingTasksListView: View {
 
     @State private var editingTask: TaskItem?
 
-    private var overdueTasks: [TaskItem] {
-        allTasks
-            .filter { $0.shouldShowInPastDue }
-            .sorted { $0.sortScore > $1.sortScore }
-    }
-
-    private var todayTasks: [TaskItem] {
-        allTasks
-            .filter { !$0.shouldShowInPastDue && $0.shouldShowToday }
-            .sorted { $0.sortScore > $1.sortScore }
-    }
-
-    private var upcomingTasks: [TaskItem] {
-        allTasks
-            .filter { task in
-                guard !task.shouldShowInPastDue, !task.shouldShowToday else { return false }
-                return task.dueDate != nil
-            }
-            .sorted { lhs, rhs in
-                if let leftDueDate = lhs.dueDate, let rightDueDate = rhs.dueDate, leftDueDate != rightDueDate {
-                    return leftDueDate < rightDueDate
-                }
-                return lhs.sortScore > rhs.sortScore
-            }
-    }
-
-    private var somedayTasks: [TaskItem] {
-        allTasks
-            .filter { !$0.shouldShowInPastDue && $0.dueDate == nil }
-            .sorted { $0.sortScore > $1.sortScore }
-    }
-
     private var sections: [(title: String, icon: String, tasks: [TaskItem], tint: Color)] {
-        [
+        var overdueTasks: [TaskItem] = []
+        var todayTasks: [TaskItem] = []
+        var upcomingTasks: [TaskItem] = []
+        var somedayTasks: [TaskItem] = []
+
+        for task in allTasks {
+            if task.shouldShowInPastDue {
+                overdueTasks.append(task)
+            } else if task.shouldShowToday {
+                todayTasks.append(task)
+            } else if task.dueDate != nil {
+                upcomingTasks.append(task)
+            } else {
+                somedayTasks.append(task)
+            }
+        }
+
+        overdueTasks.sort { $0.sortScore > $1.sortScore }
+        todayTasks.sort { $0.sortScore > $1.sortScore }
+        upcomingTasks.sort { lhs, rhs in
+            if let leftDueDate = lhs.dueDate, let rightDueDate = rhs.dueDate, leftDueDate != rightDueDate {
+                return leftDueDate < rightDueDate
+            }
+            return lhs.sortScore > rhs.sortScore
+        }
+        somedayTasks.sort { $0.sortScore > $1.sortScore }
+
+        let categorizedSections: [(title: String, icon: String, tasks: [TaskItem], tint: Color)] = [
             (L("pending.section.overdue"), "exclamationmark.triangle.fill", overdueTasks, .red),
             (L("pending.section.today"), "sun.max.fill", todayTasks, AppTheme.accent),
             (L("pending.section.upcoming"), "calendar", upcomingTasks, AppTheme.primary),
             (L("pending.section.someday"), "tray.fill", somedayTasks, AppTheme.secondary)
         ]
-        .filter { !$0.tasks.isEmpty }
+
+        return categorizedSections.filter { !$0.tasks.isEmpty }
     }
 
     var body: some View {
+        let visibleSections = sections
+
         List {
-            if sections.isEmpty {
+            if visibleSections.isEmpty {
                 emptyStateView
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
             } else {
-                ForEach(sections, id: \.title) { section in
+                ForEach(visibleSections, id: \.title) { section in
                     Section {
                         ForEach(section.tasks) { task in
                             PendingTaskRow(task: task)
@@ -97,13 +95,7 @@ struct PendingTasksListView: View {
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
-        .background(
-            LinearGradient(
-                colors: [AppTheme.backgroundTop, AppTheme.backgroundBottom],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        )
+        .background(AppBackground())
         .navigationTitle(L("pending.title"))
         .navigationBarTitleDisplayMode(.large)
         .sheet(item: $editingTask) { task in

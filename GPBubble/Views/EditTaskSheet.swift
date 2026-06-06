@@ -411,14 +411,7 @@ struct EditTaskSheet: View {
             .listRowSpacing(8)
             .listSectionSpacing(18)
             .scrollContentBackground(.hidden)
-            .background(
-                LinearGradient(
-                    colors: [AppTheme.backgroundTop, AppTheme.backgroundBottom],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                .ignoresSafeArea()
-            )
+            .background(AppBackground().ignoresSafeArea())
             .tint(AppTheme.primary)
             .navigationTitle(L("task.edit"))
             .navigationBarTitleDisplayMode(.inline)

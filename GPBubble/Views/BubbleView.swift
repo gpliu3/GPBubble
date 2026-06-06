@@ -25,6 +25,13 @@ struct BubbleView: View {
         return generator
     }()
 
+    static func diameter(for task: TaskItem) -> CGFloat {
+        let baseSize: CGFloat = 50
+        let scaleFactor: CGFloat = 11.5
+        let size = baseSize + CGFloat(task.bubbleSize) * scaleFactor
+        return min(max(size, 60), 180)
+    }
+
     init(task: TaskItem, onTap: @escaping () -> Void, onLongPress: @escaping () -> Void) {
         self.task = task
         self.onTap = onTap
@@ -32,10 +39,7 @@ struct BubbleView: View {
         self.isRecurring = task.isRecurring
 
         // Pre-compute diameter
-        let baseSize: CGFloat = 50
-        let scaleFactor: CGFloat = 11.5
-        let size = baseSize + CGFloat(task.bubbleSize) * scaleFactor
-        self.diameter = min(max(size, 60), 180)
+        self.diameter = Self.diameter(for: task)
 
         // Pre-compute color
         switch task.priority {

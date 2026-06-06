@@ -19,6 +19,21 @@ enum AppTheme {
     static let surface = Color.white.opacity(0.94)
 }
 
+struct AppBackground: View {
+    var accentOverlay: Color? = nil
+
+    var body: some View {
+        LinearGradient(
+            gradient: Gradient(colors: [
+                AppTheme.backgroundTop,
+                accentOverlay ?? AppTheme.backgroundBottom
+            ]),
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+}
+
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.scenePhase) private var scenePhase
@@ -117,11 +132,7 @@ struct PastDueView: View {
 
     var body: some View {
         ZStack {
-            LinearGradient(
-                colors: [AppTheme.backgroundTop, AppTheme.backgroundBottom],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
+            AppBackground()
             .ignoresSafeArea()
 
             if sortedPastDueTasks.isEmpty {

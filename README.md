@@ -118,6 +118,7 @@ Tasks are scored based on:
 - **One-off "On" type**: Shows only on the due date
 - **One-off "Before" type**: Shows from creation until end of due date day
 - **Recurring**: Shows only on scheduled occurrence days
+- **Past due carryover**: Unfinished tasks from previous due days also appear in Today's bubbles until completed
 - **No due date**: Shows only on today's view
 
 ### Monthly Recurrence Patterns
@@ -159,6 +160,7 @@ open GPBubble.xcodeproj
 - **Tap date**: Open calendar picker to jump to any date
 - **Tap "Today"**: Return to current day (appears when viewing other dates)
 - **Automatic Day Rollover**: If the app stays open overnight, the Today view automatically refreshes to the new day
+- **Past Due Carryover**: Unfinished tasks from previous days appear in Today's bubbles so they stay actionable
 - **Pending Tab**: Review all active tasks in a single scrollable list
 - **Past Due Tab**: Access overdue tasks separately from Pending/Done
 
@@ -177,6 +179,7 @@ open GPBubble.xcodeproj
 ### Managing Past Due Tasks
 - Navigate to **Past Due** screen from tab bar
 - View all overdue tasks sorted by the same priority/urgency logic as bubbles
+- Overdue tasks also appear in Today's bubbles until completed
 - **Tap** a bubble to complete
 - **Long press** a bubble to edit
 - Bubble layout is static (no time-of-day rising animation)

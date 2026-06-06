@@ -124,13 +124,7 @@ struct SettingsView: View {
                 }
             }
             .scrollContentBackground(.hidden)
-            .background(
-                LinearGradient(
-                    colors: [AppTheme.backgroundTop, AppTheme.backgroundBottom],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-            )
+            .background(AppBackground())
             .navigationTitle(L("settings.title"))
             .navigationBarTitleDisplayMode(.large)
             .alert(L("settings.notifications.permission.title"), isPresented: $showingPermissionAlert) {

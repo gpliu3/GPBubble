@@ -327,6 +327,13 @@ final class TaskItem {
 
         // Recurring tasks always use .on behavior (only show on scheduled day)
         let typeToUse = isRecurring ? DueDateType.on : effectiveDueDateType
+        let endOfDueDateDay = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: dueDate))!
+
+        // Unfinished items from previous due days remain actionable in Today's bubbles.
+        // If a separate recurring occurrence exists for today, both tasks will appear.
+        if now >= endOfDueDateDay {
+            return true
+        }
 
         switch typeToUse {
         case .on:
@@ -338,7 +345,6 @@ final class TaskItem {
         case .before:
             // "Before" type: Show from creation until end of deadline day
             // This ensures task shows all day on the due date, not just until the exact time
-            let endOfDueDateDay = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: dueDate))!
             return now < endOfDueDateDay
         }
     }

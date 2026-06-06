@@ -77,13 +77,10 @@ struct MainBubbleView: View {
     var body: some View {
         ZStack {
             // Background gradient - changes with time of day
-            LinearGradient(
-                gradient: Gradient(colors: [
-                    AppTheme.backgroundTop,
-                    isViewingToday && dayProgress > 0.7 ? AppTheme.accent.opacity(0.20) : AppTheme.backgroundBottom
-                ]),
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
+            AppBackground(
+                accentOverlay: isViewingToday && dayProgress > 0.7
+                    ? AppTheme.accent.opacity(0.20)
+                    : nil
             )
             .ignoresSafeArea()
 
@@ -403,15 +400,6 @@ struct BubbleLayoutView: View {
         return maxOffset * (1 - dayProgress)
     }
 
-    // Cache bubble diameters to avoid repeated calculations
-    private var cachedDiameters: [UUID: CGFloat] {
-        var cache: [UUID: CGFloat] = [:]
-        for task in tasks {
-            cache[task.id] = Self.bubbleDiameter(for: task)
-        }
-        return cache
-    }
-
     // Pre-calculate layout once per render
     private var layoutData: (positions: [CGPoint], totalHeight: CGFloat) {
         calculateLayout()
@@ -437,41 +425,32 @@ struct BubbleLayoutView: View {
         .animation(.easeInOut(duration: 1.0), value: dayProgress)
     }
 
-    // Static method to calculate diameter - no self reference needed
-    private static func bubbleDiameter(for task: TaskItem) -> CGFloat {
-        let baseSize: CGFloat = 62
-        let scaleFactor: CGFloat = 9
-        let size = baseSize + CGFloat(task.bubbleSize) * scaleFactor
-        return min(max(size, 65), 165)
-    }
-
     // Combined layout calculation - positions and height in one pass
     private func calculateLayout() -> (positions: [CGPoint], totalHeight: CGFloat) {
         var positions: [CGPoint] = []
         var currentY: CGFloat = 20
-        var currentRowBubbles: [(id: UUID, diameter: CGFloat)] = []
+        var currentRowBubbles: [CGFloat] = []
         var currentRowWidth: CGFloat = 0
         let padding: CGFloat = 16
         let availableWidth = containerWidth - (padding * 2)
-        let diameters = cachedDiameters
 
         for task in tasks {
-            let diameter = diameters[task.id] ?? Self.bubbleDiameter(for: task)
+            let diameter = BubbleView.diameter(for: task)
             let bubbleWidth = diameter + 8
 
             // Check if bubble fits in current row
             if currentRowWidth + bubbleWidth > availableWidth && !currentRowBubbles.isEmpty {
                 // Finalize current row - center it
-                let rowHeight = currentRowBubbles.map { $0.diameter }.max() ?? 0
-                let totalRowWidth = currentRowBubbles.reduce(0) { $0 + $1.diameter + 8 }
+                let rowHeight = currentRowBubbles.max() ?? 0
+                let totalRowWidth = currentRowBubbles.reduce(0) { $0 + $1 + 8 }
                 var xOffset = (containerWidth - totalRowWidth) / 2
 
-                for bubble in currentRowBubbles {
+                for bubbleDiameter in currentRowBubbles {
                     positions.append(CGPoint(
-                        x: xOffset + bubble.diameter / 2,
+                        x: xOffset + bubbleDiameter / 2,
                         y: currentY + rowHeight / 2
                     ))
-                    xOffset += bubble.diameter + 8
+                    xOffset += bubbleDiameter + 8
                 }
 
                 // Start new row
@@ -480,22 +459,22 @@ struct BubbleLayoutView: View {
                 currentRowWidth = 0
             }
 
-            currentRowBubbles.append((id: task.id, diameter: diameter))
+            currentRowBubbles.append(diameter)
             currentRowWidth += bubbleWidth
         }
 
         // Finalize last row
         if !currentRowBubbles.isEmpty {
-            let rowHeight = currentRowBubbles.map { $0.diameter }.max() ?? 0
-            let totalRowWidth = currentRowBubbles.reduce(0) { $0 + $1.diameter + 8 }
+            let rowHeight = currentRowBubbles.max() ?? 0
+            let totalRowWidth = currentRowBubbles.reduce(0) { $0 + $1 + 8 }
             var xOffset = (containerWidth - totalRowWidth) / 2
 
-            for bubble in currentRowBubbles {
+            for bubbleDiameter in currentRowBubbles {
                 positions.append(CGPoint(
-                    x: xOffset + bubble.diameter / 2,
+                    x: xOffset + bubbleDiameter / 2,
                     y: currentY + rowHeight / 2
                 ))
-                xOffset += bubble.diameter + 8
+                xOffset += bubbleDiameter + 8
             }
             currentY += rowHeight
         }

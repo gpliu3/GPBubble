@@ -149,13 +149,7 @@ struct CompletedTasksView: View {
             }
         }
         .scrollContentBackground(.hidden)
-        .background(
-            LinearGradient(
-                colors: [AppTheme.backgroundTop, AppTheme.backgroundBottom],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        )
+        .background(AppBackground())
         .navigationTitle(L("completed.title"))
         .navigationBarTitleDisplayMode(.large)
         .sheet(item: $editingTask) { task in
