@@ -12,6 +12,7 @@ import os.log
 @MainActor
 class NotificationManager: ObservableObject {
     static let shared = NotificationManager()
+    private static let taskReminderIdentifier = "next-task-reminder"
 
     @Published var isAuthorized = false
     @Published var notificationsEnabled: Bool {
@@ -114,11 +115,30 @@ class NotificationManager: ObservableObject {
     /// Cancel all scheduled notifications
     func cancelAllNotifications() {
         UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
+        UNUserNotificationCenter.current().removeAllDeliveredNotifications()
+        Task {
+            try? await UNUserNotificationCenter.current().setBadgeCount(0)
+        }
+    }
+
+    private func cancelTaskReminderNotifications() async {
+        UNUserNotificationCenter.current().removePendingNotificationRequests(
+            withIdentifiers: [Self.taskReminderIdentifier]
+        )
+        UNUserNotificationCenter.current().removeDeliveredNotifications(
+            withIdentifiers: [Self.taskReminderIdentifier]
+        )
+        try? await UNUserNotificationCenter.current().setBadgeCount(0)
     }
 
     /// Schedule a one-time notification for next reminder with task content
     func scheduleNotificationWithTasks(_ tasks: [TaskItem]) async {
-        guard isAuthorized && notificationsEnabled else { return }
+        // Refreshing should never leave a stale reminder with old task content.
+        await cancelTaskReminderNotifications()
+
+        guard isAuthorized && notificationsEnabled && !tasks.isEmpty else {
+            return
+        }
 
         let now = Date()
         let calendar = Calendar.current
@@ -157,12 +177,8 @@ class NotificationManager: ObservableObject {
         let content = UNMutableNotificationContent()
         content.title = L("notification.reminder.title")
 
-        if tasks.isEmpty {
-            content.body = L("notification.no.tasks")
-        } else {
-            // Simply list task titles separated by comma and space
-            content.body = tasks.map { $0.title }.joined(separator: ", ")
-        }
+        // Simply list task titles separated by comma and space
+        content.body = tasks.map { $0.title }.joined(separator: ", ")
 
         content.sound = .default
         content.categoryIdentifier = "TASK_REMINDER"
@@ -176,7 +192,7 @@ class NotificationManager: ObservableObject {
         )
 
         let request = UNNotificationRequest(
-            identifier: "next-task-reminder",
+            identifier: Self.taskReminderIdentifier,
             content: content,
             trigger: trigger
         )

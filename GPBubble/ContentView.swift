@@ -45,6 +45,33 @@ struct ContentView: View {
     @ObservedObject private var localizationManager = LocalizationManager.shared
     @ObservedObject private var notificationManager = NotificationManager.shared
 
+    private var todayNotificationSignature: String {
+        allTasks
+            .filter { $0.shouldShowToday }
+            .sorted { $0.sortScore > $1.sortScore }
+            .map { task in
+                [
+                    task.id.uuidString,
+                    task.title,
+                    task.dueDate?.timeIntervalSince1970.description ?? "none",
+                    task.priority.description
+                ].joined(separator: "|")
+            }
+            .joined(separator: "||")
+    }
+
+    private var notificationSettingsSignature: String {
+        [
+            notificationManager.isAuthorized.description,
+            notificationManager.notificationsEnabled.description,
+            notificationManager.numberOfReminders.description,
+            notificationManager.reminderTimes
+                .map { Calendar.current.dateComponents([.hour, .minute], from: $0) }
+                .map { "\($0.hour ?? 0):\($0.minute ?? 0)" }
+                .joined(separator: ",")
+        ].joined(separator: "|")
+    }
+
     var body: some View {
         TabView(selection: $selectedTab) {
             NavigationStack {
@@ -96,17 +123,16 @@ struct ContentView: View {
                 updateNotifications()
             }
         }
-        .onChange(of: allTasks.count) { _, _ in
-            // Update notifications when task count changes
+        .onChange(of: todayNotificationSignature) { _, _ in
+            // Update notifications when Today's actual reminder payload changes.
+            updateNotifications()
+        }
+        .onChange(of: notificationSettingsSignature) { _, _ in
             updateNotifications()
         }
     }
 
     private func updateNotifications() {
-        guard notificationManager.isAuthorized && notificationManager.notificationsEnabled else {
-            return
-        }
-
         // Filter to today's tasks only
         let todayTasks = allTasks.filter { $0.shouldShowToday }
 
