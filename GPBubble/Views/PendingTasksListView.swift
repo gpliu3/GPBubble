@@ -7,6 +7,9 @@ import SwiftUI
 import SwiftData
 
 struct PendingTasksListView: View {
+    private static let futurePreviewHorizonDays = 90
+    private static let futurePreviewLimit = 80
+
     @Environment(\.modelContext) private var modelContext
     @Query(filter: #Predicate<TaskItem> { !$0.isCompleted },
            sort: \TaskItem.createdAt)
@@ -14,42 +17,45 @@ struct PendingTasksListView: View {
 
     @State private var editingTask: TaskItem?
 
-    private var sections: [(title: String, icon: String, tasks: [TaskItem], tint: Color)] {
-        var overdueTasks: [TaskItem] = []
-        var todayTasks: [TaskItem] = []
-        var upcomingTasks: [TaskItem] = []
-        var somedayTasks: [TaskItem] = []
+    private var sections: [(title: String, icon: String, items: [PendingListItem], tint: Color)] {
+        var overdueItems: [PendingListItem] = []
+        var todayItems: [PendingListItem] = []
+        var upcomingItems: [PendingListItem] = []
+        var somedayItems: [PendingListItem] = []
 
         for task in allTasks {
+            let item = PendingListItem(task: task)
             if task.shouldShowInPastDue {
-                overdueTasks.append(task)
+                overdueItems.append(item)
             } else if task.shouldShowToday {
-                todayTasks.append(task)
+                todayItems.append(item)
             } else if task.dueDate != nil {
-                upcomingTasks.append(task)
+                upcomingItems.append(item)
             } else {
-                somedayTasks.append(task)
+                somedayItems.append(item)
             }
         }
 
-        overdueTasks.sort { $0.sortScore > $1.sortScore }
-        todayTasks.sort { $0.sortScore > $1.sortScore }
-        upcomingTasks.sort { lhs, rhs in
-            if let leftDueDate = lhs.dueDate, let rightDueDate = rhs.dueDate, leftDueDate != rightDueDate {
+        upcomingItems.append(contentsOf: projectedFutureItems(excluding: upcomingItems))
+
+        overdueItems.sort { $0.task.sortScore > $1.task.sortScore }
+        todayItems.sort { $0.task.sortScore > $1.task.sortScore }
+        upcomingItems.sort { lhs, rhs in
+            if let leftDueDate = lhs.displayDueDate, let rightDueDate = rhs.displayDueDate, leftDueDate != rightDueDate {
                 return leftDueDate < rightDueDate
             }
-            return lhs.sortScore > rhs.sortScore
+            return lhs.task.sortScore > rhs.task.sortScore
         }
-        somedayTasks.sort { $0.sortScore > $1.sortScore }
+        somedayItems.sort { $0.task.sortScore > $1.task.sortScore }
 
-        let categorizedSections: [(title: String, icon: String, tasks: [TaskItem], tint: Color)] = [
-            (L("pending.section.overdue"), "exclamationmark.triangle.fill", overdueTasks, .red),
-            (L("pending.section.today"), "sun.max.fill", todayTasks, AppTheme.accent),
-            (L("pending.section.upcoming"), "calendar", upcomingTasks, AppTheme.primary),
-            (L("pending.section.someday"), "tray.fill", somedayTasks, AppTheme.secondary)
+        let categorizedSections: [(title: String, icon: String, items: [PendingListItem], tint: Color)] = [
+            (L("pending.section.overdue"), "exclamationmark.triangle.fill", overdueItems, .red),
+            (L("pending.section.today"), "sun.max.fill", todayItems, AppTheme.accent),
+            (L("pending.section.upcoming"), "calendar", upcomingItems, AppTheme.primary),
+            (L("pending.section.someday"), "tray.fill", somedayItems, AppTheme.secondary)
         ]
 
-        return categorizedSections.filter { !$0.tasks.isEmpty }
+        return categorizedSections.filter { !$0.items.isEmpty }
     }
 
     var body: some View {
@@ -63,21 +69,23 @@ struct PendingTasksListView: View {
             } else {
                 ForEach(visibleSections, id: \.title) { section in
                     Section {
-                        ForEach(section.tasks) { task in
-                            PendingTaskRow(task: task)
+                        ForEach(section.items) { item in
+                            PendingTaskRow(item: item)
                                 .contentShape(Rectangle())
                                 .onTapGesture {
-                                    editingTask = task
+                                    editingTask = item.task
                                 }
                                 .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                                    Button {
-                                        completeTask(task)
-                                    } label: {
-                                        Label(L("pending.complete"), systemImage: "checkmark.circle.fill")
+                                    if !item.isProjected {
+                                        Button {
+                                            completeTask(item.task)
+                                        } label: {
+                                            Label(L("pending.complete"), systemImage: "checkmark.circle.fill")
+                                        }
+                                        .tint(AppTheme.secondary)
                                     }
-                                    .tint(AppTheme.secondary)
                                 }
-                                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                                .listRowInsets(EdgeInsets(top: 5, leading: 14, bottom: 5, trailing: 14))
                                 .listRowBackground(Color.clear)
                                 .listRowSeparator(.hidden)
                         }
@@ -136,10 +144,185 @@ struct PendingTasksListView: View {
             }
         }
     }
+
+    private func projectedFutureItems(excluding existingItems: [PendingListItem]) -> [PendingListItem] {
+        let calendar = Calendar.current
+        let now = Date()
+        guard let horizon = calendar.date(
+            byAdding: .day,
+            value: Self.futurePreviewHorizonDays,
+            to: now
+        ) else {
+            return []
+        }
+
+        let existingKeys = Set(existingItems.compactMap { item -> String? in
+            guard let dueDate = item.displayDueDate else { return nil }
+            return projectionKey(taskID: item.task.id, date: dueDate, calendar: calendar)
+        })
+
+        var projected: [PendingListItem] = []
+        for task in allTasks where task.isRecurring && !task.isCompleted {
+            let anchor = task.dueDate ?? now
+            var cursor = max(anchor, now)
+            var guardCount = 0
+
+            while projected.count < Self.futurePreviewLimit,
+                  guardCount < Self.futurePreviewLimit,
+                  let nextDate = nextRecurringDate(for: task, after: cursor, calendar: calendar),
+                  nextDate <= horizon {
+                guardCount += 1
+                cursor = nextDate
+
+                let key = projectionKey(taskID: task.id, date: nextDate, calendar: calendar)
+                if existingKeys.contains(key) {
+                    continue
+                }
+
+                projected.append(PendingListItem(task: task, projectedDueDate: nextDate))
+            }
+        }
+
+        return projected
+    }
+
+    private func projectionKey(taskID: UUID, date: Date, calendar: Calendar) -> String {
+        let components = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: date)
+        let parts = [
+            taskID.uuidString,
+            String(components.year ?? 0),
+            String(components.month ?? 0),
+            String(components.day ?? 0),
+            String(components.hour ?? 0),
+            String(components.minute ?? 0)
+        ]
+        return parts.joined(separator: "-")
+    }
+
+    private func nextRecurringDate(for task: TaskItem, after date: Date, calendar: Calendar) -> Date? {
+        guard let interval = task.recurringInterval else { return nil }
+
+        switch interval {
+        case .daily:
+            return calendar.date(byAdding: .day, value: 1, to: date)
+
+        case .weekly:
+            if !task.weeklyDays.isEmpty {
+                return nextWeeklyDate(after: date, weekdays: task.weeklyDays, calendar: calendar)
+            }
+
+            let step = max(1, 7 / max(task.recurringCount, 1))
+            return calendar.date(byAdding: .day, value: step, to: date)
+
+        case .monthly:
+            switch task.monthlyPattern ?? .timesPerMonth {
+            case .dayOfMonth:
+                return nextDayOfMonth(after: date, day: task.monthlyDayOfMonth, calendar: calendar)
+            case .nthWeekday:
+                return nextNthWeekday(
+                    after: date,
+                    weekNumber: task.monthlyWeekNumber,
+                    weekday: task.monthlyWeekday,
+                    calendar: calendar
+                )
+            case .timesPerMonth:
+                let step = max(1, 30 / max(task.recurringCount, 1))
+                return calendar.date(byAdding: .day, value: step, to: date)
+            }
+        }
+    }
+
+    private func nextWeeklyDate(after date: Date, weekdays: [Int], calendar: Calendar) -> Date? {
+        let selectedDays = Set(weekdays)
+        for offset in 1...8 {
+            guard let candidate = calendar.date(byAdding: .day, value: offset, to: date) else { continue }
+            if selectedDays.contains(calendar.component(.weekday, from: candidate)) {
+                return candidate
+            }
+        }
+        return calendar.date(byAdding: .weekOfYear, value: 1, to: date)
+    }
+
+    private func nextDayOfMonth(after date: Date, day: Int, calendar: Calendar) -> Date? {
+        for monthOffset in 0...13 {
+            guard let monthDate = calendar.date(byAdding: .month, value: monthOffset, to: date),
+                  let range = calendar.range(of: .day, in: .month, for: monthDate) else {
+                continue
+            }
+
+            var components = calendar.dateComponents([.year, .month, .hour, .minute], from: monthDate)
+            components.day = day == 0 ? range.count : min(max(day, 1), range.count)
+
+            if let candidate = calendar.date(from: components), candidate > date {
+                return candidate
+            }
+        }
+
+        return nil
+    }
+
+    private func nextNthWeekday(after date: Date, weekNumber: Int, weekday: Int, calendar: Calendar) -> Date? {
+        for monthOffset in 0...13 {
+            guard let monthDate = calendar.date(byAdding: .month, value: monthOffset, to: date) else {
+                continue
+            }
+
+            let monthComponents = calendar.dateComponents([.year, .month], from: monthDate)
+            let timeComponents = calendar.dateComponents([.hour, .minute], from: date)
+            var components = DateComponents()
+            components.year = monthComponents.year
+            components.month = monthComponents.month
+            components.weekday = weekday
+
+            if weekNumber == WeekNumber.last.rawValue {
+                components.weekdayOrdinal = -1
+            } else {
+                components.weekdayOrdinal = min(max(weekNumber, 1), 4)
+            }
+
+            components.hour = timeComponents.hour
+            components.minute = timeComponents.minute
+
+            if let candidate = calendar.date(from: components), candidate > date {
+                return candidate
+            }
+        }
+
+        return nil
+    }
+}
+
+private struct PendingListItem: Identifiable {
+    let task: TaskItem
+    let projectedDueDate: Date?
+
+    init(task: TaskItem, projectedDueDate: Date? = nil) {
+        self.task = task
+        self.projectedDueDate = projectedDueDate
+    }
+
+    var id: String {
+        if let projectedDueDate {
+            return "\(task.id.uuidString)-projected-\(projectedDueDate.timeIntervalSince1970)"
+        }
+        return task.id.uuidString
+    }
+
+    var displayDueDate: Date? {
+        projectedDueDate ?? task.dueDate
+    }
+
+    var isProjected: Bool {
+        projectedDueDate != nil
+    }
 }
 
 private struct PendingTaskRow: View {
-    let task: TaskItem
+    let item: PendingListItem
+
+    private var task: TaskItem {
+        item.task
+    }
 
     private var priorityColor: Color {
         switch task.priority {
@@ -153,9 +336,9 @@ private struct PendingTaskRow: View {
     }
 
     private var dueLabel: String? {
-        guard let dueDate = task.dueDate else { return nil }
+        guard let dueDate = item.displayDueDate else { return nil }
 
-        if task.shouldShowInPastDue {
+        if !item.isProjected && task.shouldShowInPastDue {
             return L("pending.section.overdue")
         }
 
@@ -163,66 +346,82 @@ private struct PendingTaskRow: View {
             return dueDate.formatted(.dateTime.hour().minute())
         }
 
-        return dueDate.formatted(.dateTime.month(.abbreviated).day())
+        return dueDate.formatted(.dateTime.day().month(.abbreviated))
     }
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .center, spacing: 10) {
             RoundedRectangle(cornerRadius: 6, style: .continuous)
                 .fill(priorityColor)
-                .frame(width: 8, height: 48)
+                .frame(width: 6, height: 42)
 
-            VStack(alignment: .leading, spacing: 10) {
-                HStack(alignment: .top, spacing: 8) {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
                     Text(task.title)
                         .font(.body.weight(.semibold))
                         .foregroundColor(.primary)
-                        .lineLimit(3)
+                        .lineLimit(2)
 
                     Spacer(minLength: 0)
 
                     Text(task.priorityLabel)
                         .font(.caption.weight(.semibold))
                         .foregroundColor(priorityColor)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 5)
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 4)
                         .background(priorityColor.opacity(0.12))
                         .clipShape(Capsule())
                 }
 
-                HStack(spacing: 8) {
-                    taskMetaBadge(text: task.effortLabel, icon: "timer", tint: AppTheme.primary)
+                HStack(spacing: 6) {
+                    taskMetaBadge(text: task.effortLabel, icon: "timer", tint: AppTheme.primary, compact: false)
 
                     if let dueLabel {
-                        taskMetaBadge(text: dueLabel, icon: "calendar", tint: task.shouldShowInPastDue ? .red : AppTheme.accent)
+                        taskMetaBadge(text: dueLabel, icon: "calendar", tint: task.shouldShowInPastDue ? .red : AppTheme.accent, compact: false)
                     }
 
                     if task.isRecurring {
-                        taskMetaBadge(text: L("recurring.toggle"), icon: "repeat", tint: AppTheme.secondary)
+                        taskMetaBadge(text: nil, icon: "repeat", tint: AppTheme.secondary, compact: true)
                     }
+
+                    if item.isProjected {
+                        taskMetaBadge(text: nil, icon: "sparkles", tint: AppTheme.secondary, compact: true)
+                    }
+
+                    Spacer(minLength: 0)
                 }
             }
         }
-        .padding(16)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 11)
         .background(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .fill(AppTheme.surface)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .stroke(.white.opacity(0.5), lineWidth: 1)
         )
     }
 
     @ViewBuilder
-    private func taskMetaBadge(text: String, icon: String, tint: Color) -> some View {
-        Label(text, systemImage: icon)
-            .font(.caption.weight(.medium))
-            .foregroundColor(tint)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 6)
-            .background(tint.opacity(0.10))
-            .clipShape(Capsule())
+    private func taskMetaBadge(text: String?, icon: String, tint: Color, compact: Bool) -> some View {
+        HStack(spacing: 4) {
+            Image(systemName: icon)
+                .font(.caption.weight(.semibold))
+
+            if let text {
+                Text(text)
+                    .font(.caption.weight(.medium))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
+            }
+        }
+        .foregroundColor(tint)
+        .padding(.horizontal, compact ? 7 : 8)
+        .padding(.vertical, 5)
+        .background(tint.opacity(0.10))
+        .clipShape(Capsule())
     }
 }
 
