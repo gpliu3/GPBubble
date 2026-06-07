@@ -130,6 +130,10 @@ struct ContentView: View {
         .onChange(of: notificationSettingsSignature) { _, _ in
             updateNotifications()
         }
+        .task {
+            await notificationManager.checkAuthorizationStatus()
+            updateNotifications()
+        }
     }
 
     private func updateNotifications() {

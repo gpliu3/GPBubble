@@ -105,11 +105,9 @@ class NotificationManager: ObservableObject {
         isAuthorized = settings.authorizationStatus == .authorized
     }
 
-    /// Schedule all daily reminder notifications - placeholder for compatibility
+    /// Clear any reminder left by an older app version before the task query is ready.
     func scheduleAllNotifications() async {
-        // Notifications are now scheduled dynamically with actual task content
-        // This method exists for compatibility but does nothing
-        // Real scheduling happens in scheduleNotificationWithTasks
+        await cancelTaskReminderNotifications()
     }
 
     /// Cancel all scheduled notifications
