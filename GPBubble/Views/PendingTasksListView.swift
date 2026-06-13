@@ -7,8 +7,9 @@ import SwiftUI
 import SwiftData
 
 struct PendingTasksListView: View {
-    private static let futurePreviewHorizonDays = 90
-    private static let futurePreviewLimit = 80
+    private static let futurePreviewHorizonDays = 120
+    private static let futurePreviewLimit = 240
+    private static let maxProjectedItemsPerTask = 30
 
     @Environment(\.modelContext) private var modelContext
     @Query(filter: #Predicate<TaskItem> { !$0.isCompleted },
@@ -17,45 +18,55 @@ struct PendingTasksListView: View {
 
     @State private var editingTask: TaskItem?
 
-    private var sections: [(title: String, icon: String, items: [PendingListItem], tint: Color)] {
-        var overdueItems: [PendingListItem] = []
-        var todayItems: [PendingListItem] = []
-        var upcomingItems: [PendingListItem] = []
+    private var sections: [PendingDateSection] {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        var datedItems: [Date: [PendingListItem]] = [:]
         var somedayItems: [PendingListItem] = []
 
         for task in allTasks {
             let item = PendingListItem(task: task)
-            if task.shouldShowInPastDue {
-                overdueItems.append(item)
-            } else if task.shouldShowToday {
-                todayItems.append(item)
-            } else if task.dueDate != nil {
-                upcomingItems.append(item)
-            } else {
+            guard let displayDate = item.displayDueDate else {
                 somedayItems.append(item)
+                continue
             }
+
+            datedItems[calendar.startOfDay(for: displayDate), default: []].append(item)
         }
 
-        upcomingItems.append(contentsOf: projectedFutureItems(excluding: upcomingItems))
-
-        overdueItems.sort { $0.task.sortScore > $1.task.sortScore }
-        todayItems.sort { $0.task.sortScore > $1.task.sortScore }
-        upcomingItems.sort { lhs, rhs in
-            if let leftDueDate = lhs.displayDueDate, let rightDueDate = rhs.displayDueDate, leftDueDate != rightDueDate {
-                return leftDueDate < rightDueDate
-            }
-            return lhs.task.sortScore > rhs.task.sortScore
+        for item in projectedFutureItems(excluding: datedItems.values.flatMap { $0 }) {
+            guard let displayDate = item.displayDueDate else { continue }
+            datedItems[calendar.startOfDay(for: displayDate), default: []].append(item)
         }
-        somedayItems.sort { $0.task.sortScore > $1.task.sortScore }
 
-        let categorizedSections: [(title: String, icon: String, items: [PendingListItem], tint: Color)] = [
-            (L("pending.section.overdue"), "exclamationmark.triangle.fill", overdueItems, .red),
-            (L("pending.section.today"), "sun.max.fill", todayItems, AppTheme.accent),
-            (L("pending.section.upcoming"), "calendar", upcomingItems, AppTheme.primary),
-            (L("pending.section.someday"), "tray.fill", somedayItems, AppTheme.secondary)
-        ]
+        var result = datedItems.keys.sorted { sortSectionDates($0, $1, today: today) }.compactMap { date -> PendingDateSection? in
+            guard var items = datedItems[date], !items.isEmpty else { return nil }
+            items.sort(by: sortItemsWithinDate)
+            return PendingDateSection(
+                date: date,
+                title: sectionTitle(for: date, calendar: calendar),
+                subtitle: sectionSubtitle(for: date, calendar: calendar),
+                icon: sectionIcon(for: date, calendar: calendar),
+                tint: sectionTint(for: date, calendar: calendar),
+                items: items
+            )
+        }
 
-        return categorizedSections.filter { !$0.items.isEmpty }
+        if !somedayItems.isEmpty {
+            somedayItems.sort { $0.task.sortScore > $1.task.sortScore }
+            result.append(
+                PendingDateSection(
+                    date: nil,
+                    title: L("pending.section.someday"),
+                    subtitle: nil,
+                    icon: "tray.fill",
+                    tint: AppTheme.secondary,
+                    items: somedayItems
+                )
+            )
+        }
+
+        return result
     }
 
     var body: some View {
@@ -67,7 +78,7 @@ struct PendingTasksListView: View {
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
             } else {
-                ForEach(visibleSections, id: \.title) { section in
+                ForEach(visibleSections) { section in
                     Section {
                         ForEach(section.items) { item in
                             PendingTaskRow(item: item)
@@ -90,13 +101,7 @@ struct PendingTasksListView: View {
                                 .listRowSeparator(.hidden)
                         }
                     } header: {
-                        HStack(spacing: 8) {
-                            Image(systemName: section.icon)
-                                .foregroundColor(section.tint)
-                            Text(section.title)
-                        }
-                        .font(.subheadline.weight(.semibold))
-                        .textCase(nil)
+                        PendingSectionHeader(section: section)
                     }
                 }
             }
@@ -145,6 +150,90 @@ struct PendingTasksListView: View {
         }
     }
 
+    private func sortItemsWithinDate(_ lhs: PendingListItem, _ rhs: PendingListItem) -> Bool {
+        let lhsDue = lhs.displayDueDate
+        let rhsDue = rhs.displayDueDate
+
+        if lhs.isOverdue != rhs.isOverdue {
+            return lhs.isOverdue
+        }
+
+        if let leftDue = lhsDue, let rightDue = rhsDue,
+           !Calendar.current.isDate(leftDue, equalTo: rightDue, toGranularity: .minute) {
+            return leftDue < rightDue
+        }
+
+        return lhs.task.sortScore > rhs.task.sortScore
+    }
+
+    private func sortSectionDates(_ lhs: Date, _ rhs: Date, today: Date) -> Bool {
+        let lhsIsPast = lhs < today
+        let rhsIsPast = rhs < today
+
+        if lhsIsPast != rhsIsPast {
+            return lhsIsPast
+        }
+
+        if lhsIsPast && rhsIsPast {
+            return lhs > rhs
+        }
+
+        return lhs < rhs
+    }
+
+    private func sectionTitle(for date: Date, calendar: Calendar) -> String {
+        if calendar.isDateInToday(date) {
+            return L("pending.section.today")
+        }
+
+        if calendar.isDateInTomorrow(date) {
+            return "Tomorrow"
+        }
+
+        return date.formatted(.dateTime.day().month(.abbreviated))
+    }
+
+    private func sectionSubtitle(for date: Date, calendar: Calendar) -> String? {
+        let today = calendar.startOfDay(for: Date())
+        if date < today {
+            let days = calendar.dateComponents([.day], from: date, to: today).day ?? 0
+            if days <= 0 { return nil }
+            return days == 1 ? "Overdue, 1 day ago" : "Overdue, \(days) days ago"
+        }
+
+        let year = calendar.component(.year, from: date)
+        let currentYear = calendar.component(.year, from: today)
+        if year != currentYear {
+            return date.formatted(.dateTime.year())
+        }
+
+        return date.formatted(.dateTime.weekday(.wide))
+    }
+
+    private func sectionIcon(for date: Date, calendar: Calendar) -> String {
+        if date < calendar.startOfDay(for: Date()) {
+            return "exclamationmark.triangle.fill"
+        }
+
+        if calendar.isDateInToday(date) {
+            return "sun.max.fill"
+        }
+
+        return "calendar"
+    }
+
+    private func sectionTint(for date: Date, calendar: Calendar) -> Color {
+        if date < calendar.startOfDay(for: Date()) {
+            return .red
+        }
+
+        if calendar.isDateInToday(date) {
+            return AppTheme.accent
+        }
+
+        return AppTheme.primary
+    }
+
     private func projectedFutureItems(excluding existingItems: [PendingListItem]) -> [PendingListItem] {
         let calendar = Calendar.current
         let now = Date()
@@ -156,30 +245,67 @@ struct PendingTasksListView: View {
             return []
         }
 
-        let existingKeys = Set(existingItems.compactMap { item -> String? in
+        var seenKeys = Set(existingItems.compactMap { item -> String? in
             guard let dueDate = item.displayDueDate else { return nil }
             return projectionKey(taskID: item.task.id, date: dueDate, calendar: calendar)
         })
 
+        var states = allTasks
+            .filter { $0.isRecurring && !$0.isCompleted }
+            .map { task in
+                ProjectionState(
+                    task: task,
+                    cursor: max(task.dueDate ?? now, now),
+                    emittedCount: 0,
+                    exhausted: false
+                )
+            }
+
         var projected: [PendingListItem] = []
-        for task in allTasks where task.isRecurring && !task.isCompleted {
-            let anchor = task.dueDate ?? now
-            var cursor = max(anchor, now)
-            var guardCount = 0
 
-            while projected.count < Self.futurePreviewLimit,
-                  guardCount < Self.futurePreviewLimit,
-                  let nextDate = nextRecurringDate(for: task, after: cursor, calendar: calendar),
-                  nextDate <= horizon {
-                guardCount += 1
-                cursor = nextDate
+        while projected.count < Self.futurePreviewLimit,
+              states.contains(where: { !$0.exhausted && $0.emittedCount < Self.maxProjectedItemsPerTask }) {
+            var madeProgress = false
 
-                let key = projectionKey(taskID: task.id, date: nextDate, calendar: calendar)
-                if existingKeys.contains(key) {
+            for index in states.indices where projected.count < Self.futurePreviewLimit {
+                guard !states[index].exhausted,
+                      states[index].emittedCount < Self.maxProjectedItemsPerTask else {
                     continue
                 }
 
-                projected.append(PendingListItem(task: task, projectedDueDate: nextDate))
+                var attempts = 0
+                var didEmit = false
+
+                while attempts < 8,
+                      let nextDate = nextRecurringDate(for: states[index].task, after: states[index].cursor, calendar: calendar) {
+                    attempts += 1
+                    states[index].cursor = nextDate
+
+                    if nextDate > horizon {
+                        states[index].exhausted = true
+                        break
+                    }
+
+                    let key = projectionKey(taskID: states[index].task.id, date: nextDate, calendar: calendar)
+                    guard !seenKeys.contains(key) else {
+                        continue
+                    }
+
+                    seenKeys.insert(key)
+                    states[index].emittedCount += 1
+                    projected.append(PendingListItem(task: states[index].task, projectedDueDate: nextDate))
+                    madeProgress = true
+                    didEmit = true
+                    break
+                }
+
+                if !didEmit && attempts == 0 {
+                    states[index].exhausted = true
+                }
+            }
+
+            if !madeProgress {
+                break
             }
         }
 
@@ -292,6 +418,29 @@ struct PendingTasksListView: View {
     }
 }
 
+private struct PendingDateSection: Identifiable {
+    let date: Date?
+    let title: String
+    let subtitle: String?
+    let icon: String
+    let tint: Color
+    let items: [PendingListItem]
+
+    var id: String {
+        if let date {
+            return String(date.timeIntervalSince1970)
+        }
+        return "someday"
+    }
+}
+
+private struct ProjectionState {
+    let task: TaskItem
+    var cursor: Date
+    var emittedCount: Int
+    var exhausted: Bool
+}
+
 private struct PendingListItem: Identifiable {
     let task: TaskItem
     let projectedDueDate: Date?
@@ -314,6 +463,55 @@ private struct PendingListItem: Identifiable {
 
     var isProjected: Bool {
         projectedDueDate != nil
+    }
+
+    var isOverdue: Bool {
+        guard !isProjected, let dueDate = displayDueDate else { return false }
+        let calendar = Calendar.current
+        let endOfDueDateDay = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: dueDate))!
+        return Date() >= endOfDueDateDay
+    }
+}
+
+private struct PendingSectionHeader: View {
+    let section: PendingDateSection
+
+    var body: some View {
+        HStack(spacing: 9) {
+            Image(systemName: section.icon)
+                .font(.subheadline.weight(.semibold))
+                .foregroundColor(section.tint)
+                .frame(width: 22, height: 22)
+                .background(section.tint.opacity(0.12))
+                .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+
+            Text(section.title)
+                .font(.headline.weight(.bold))
+                .foregroundColor(.primary)
+
+            if let subtitle = section.subtitle {
+                Text(subtitle)
+                    .font(.caption.weight(.semibold))
+                    .foregroundColor(.secondary)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 3)
+                    .background(Color.secondary.opacity(0.10))
+                    .clipShape(Capsule())
+            }
+
+            Spacer(minLength: 0)
+
+            Text("\(section.items.count)")
+                .font(.caption.weight(.bold))
+                .foregroundColor(section.tint)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(section.tint.opacity(0.12))
+                .clipShape(Capsule())
+        }
+        .padding(.top, 8)
+        .padding(.bottom, 2)
+        .textCase(nil)
     }
 }
 
@@ -338,8 +536,8 @@ private struct PendingTaskRow: View {
     private var dueLabel: String? {
         guard let dueDate = item.displayDueDate else { return nil }
 
-        if !item.isProjected && task.shouldShowInPastDue {
-            return L("pending.section.overdue")
+        if item.isOverdue {
+            return "from \(dueDate.formatted(.dateTime.day().month(.abbreviated)))"
         }
 
         if Calendar.current.isDateInToday(dueDate) {
@@ -347,6 +545,16 @@ private struct PendingTaskRow: View {
         }
 
         return dueDate.formatted(.dateTime.day().month(.abbreviated))
+    }
+
+    private var overdueAgeLabel: String? {
+        guard item.isOverdue, let dueDate = item.displayDueDate else { return nil }
+        let calendar = Calendar.current
+        let dueDay = calendar.startOfDay(for: dueDate)
+        let today = calendar.startOfDay(for: Date())
+        let days = calendar.dateComponents([.day], from: dueDay, to: today).day ?? 0
+        if days <= 0 { return nil }
+        return days == 1 ? "1d ago" : "\(days)d ago"
     }
 
     var body: some View {
@@ -377,7 +585,11 @@ private struct PendingTaskRow: View {
                     taskMetaBadge(text: task.effortLabel, icon: "timer", tint: AppTheme.primary, compact: false)
 
                     if let dueLabel {
-                        taskMetaBadge(text: dueLabel, icon: "calendar", tint: task.shouldShowInPastDue ? .red : AppTheme.accent, compact: false)
+                        taskMetaBadge(text: dueLabel, icon: item.isOverdue ? "clock.badge.exclamationmark" : "calendar", tint: item.isOverdue ? .red : AppTheme.accent, compact: false)
+                    }
+
+                    if let overdueAgeLabel {
+                        taskMetaBadge(text: overdueAgeLabel, icon: "exclamationmark.triangle.fill", tint: .red, compact: false)
                     }
 
                     if task.isRecurring {
