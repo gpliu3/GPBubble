@@ -252,7 +252,7 @@ struct MainBubbleView: View {
                         editingTask = task
                     }
                 )
-                .padding(.bottom, 100) // Space for add button
+                .padding(.bottom, 120) // Space for add button and tab bar
             }
         }
     }
@@ -391,6 +391,7 @@ struct BubbleLayoutView: View {
     let dayProgress: Double
     let onTap: (TaskItem) -> Void
     let onLongPress: (TaskItem) -> Void
+    var badge: ((TaskItem) -> String?)? = nil
 
     // Morning offset: bubbles start lower, rise throughout the day
     // At 0% progress (morning): offset = maxOffset (bubbles at bottom)
@@ -413,6 +414,7 @@ struct BubbleLayoutView: View {
                 if index < layout.positions.count {
                     BubbleView(
                         task: task,
+                        badge: badge?(task),
                         onTap: { onTap(task) },
                         onLongPress: { onLongPress(task) }
                     )
@@ -421,7 +423,9 @@ struct BubbleLayoutView: View {
             }
         }
         .frame(width: containerWidth, height: layout.totalHeight)
-        .offset(y: verticalOffset)
+        // Padding (not offset) so the rising-bubble shift is part of the scrollable
+        // height and the last row can always scroll clear of the add button.
+        .padding(.top, verticalOffset)
         .animation(.easeInOut(duration: 1.0), value: dayProgress)
     }
 

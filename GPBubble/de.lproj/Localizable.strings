@@ -167,3 +167,11 @@
 "pending.section.someday" = "Someday";
 "pending.complete" = "Complete";
 "effort.customhours" = "Custom hours";
+
+/* Overdue and section labels */
+"pastdue.empty" = "Keine überfälligen Aufgaben";
+"pending.overdue.one" = "1 Tag überfällig";
+"pending.overdue.other" = "%d Tage überfällig";
+"overdue.days.short" = "%d T. überfällig";
+"pending.section.tomorrow" = "Morgen";
+"completed.section.yesterday" = "Gestern";

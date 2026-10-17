@@ -187,7 +187,7 @@ struct PendingTasksListView: View {
         }
 
         if calendar.isDateInTomorrow(date) {
-            return "Tomorrow"
+            return L("pending.section.tomorrow")
         }
 
         return date.formatted(.dateTime.day().month(.abbreviated))
@@ -198,7 +198,7 @@ struct PendingTasksListView: View {
         if date < today {
             let days = calendar.dateComponents([.day], from: date, to: today).day ?? 0
             if days <= 0 { return nil }
-            return days == 1 ? "Overdue, 1 day ago" : "Overdue, \(days) days ago"
+            return days == 1 ? L("pending.overdue.one") : String(format: L("pending.overdue.other"), days)
         }
 
         let year = calendar.component(.year, from: date)
@@ -523,21 +523,15 @@ private struct PendingTaskRow: View {
     }
 
     private var priorityColor: Color {
-        switch task.priority {
-        case 1: return Color(red: 0.20, green: 0.68, blue: 0.52)
-        case 2: return Color(red: 0.30, green: 0.74, blue: 0.63)
-        case 3: return Color(red: 0.24, green: 0.57, blue: 0.86)
-        case 4: return Color(red: 0.92, green: 0.54, blue: 0.28)
-        case 5: return Color(red: 0.80, green: 0.31, blue: 0.30)
-        default: return AppTheme.primary
-        }
+        AppTheme.priorityColor(task.priority)
     }
 
     private var dueLabel: String? {
         guard let dueDate = item.displayDueDate else { return nil }
 
+        // Overdue rows sit under a header that already names the date and age.
         if item.isOverdue {
-            return "from \(dueDate.formatted(.dateTime.day().month(.abbreviated)))"
+            return nil
         }
 
         if Calendar.current.isDateInToday(dueDate) {
@@ -554,7 +548,7 @@ private struct PendingTaskRow: View {
         let today = calendar.startOfDay(for: Date())
         let days = calendar.dateComponents([.day], from: dueDay, to: today).day ?? 0
         if days <= 0 { return nil }
-        return days == 1 ? "1d ago" : "\(days)d ago"
+        return String(format: L("overdue.days.short"), days)
     }
 
     var body: some View {

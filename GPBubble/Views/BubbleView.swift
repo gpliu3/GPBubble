@@ -9,6 +9,8 @@ struct BubbleView: View {
     let task: TaskItem
     let onTap: () -> Void
     let onLongPress: () -> Void
+    /// Optional short status shown under the effort label (e.g. "2d late" in Past Due).
+    let badge: String?
 
     @State private var isPopping = false
     @State private var bobOffset: CGFloat = 0
@@ -32,8 +34,9 @@ struct BubbleView: View {
         return min(max(size, 60), 180)
     }
 
-    init(task: TaskItem, onTap: @escaping () -> Void, onLongPress: @escaping () -> Void) {
+    init(task: TaskItem, badge: String? = nil, onTap: @escaping () -> Void, onLongPress: @escaping () -> Void) {
         self.task = task
+        self.badge = badge
         self.onTap = onTap
         self.onLongPress = onLongPress
         self.isRecurring = task.isRecurring
@@ -41,15 +44,7 @@ struct BubbleView: View {
         // Pre-compute diameter
         self.diameter = Self.diameter(for: task)
 
-        // Pre-compute color
-        switch task.priority {
-        case 1: self.bubbleColor = Color(red: 0.20, green: 0.68, blue: 0.52)
-        case 2: self.bubbleColor = Color(red: 0.30, green: 0.74, blue: 0.63)
-        case 3: self.bubbleColor = Color(red: 0.24, green: 0.57, blue: 0.86)
-        case 4: self.bubbleColor = Color(red: 0.92, green: 0.54, blue: 0.28)
-        case 5: self.bubbleColor = Color(red: 0.80, green: 0.31, blue: 0.30)
-        default: self.bubbleColor = AppTheme.primary
-        }
+        self.bubbleColor = AppTheme.priorityColor(task.priority)
     }
 
     var body: some View {
@@ -88,13 +83,19 @@ struct BubbleView: View {
 
             // Content: Title and time
             VStack(spacing: 2) {
-                // Task title - scales with bubble size
+                // Task title - sized to the bubble and allowed to shrink so whole
+                // words stay readable instead of truncating mid-word.
                 Text(task.title)
-                    .font(.system(size: min(diameter / 4.5, 24), weight: .medium))
+                    .font(.system(size: min(diameter / 5.2, 22), weight: .semibold, design: .rounded))
                     .foregroundColor(.white)
                     .multilineTextAlignment(.center)
-                    .lineLimit(2)
-                    .frame(width: diameter - 20)
+                    .lineLimit(diameter >= 90 ? 3 : 2)
+                    .minimumScaleFactor(0.6)
+                    .allowsTightening(true)
+                    // Capped height makes long titles shrink instead of pushing the
+                    // labels into the recurring mark at the bottom edge.
+                    .frame(width: diameter * 0.78)
+                    .frame(maxHeight: diameter * (badge != nil ? 0.32 : (isRecurring ? 0.4 : 0.5)), alignment: .bottom)
 
                 // Time label - fixed size
                 Text(task.effortLabel)
@@ -106,6 +107,16 @@ struct BubbleView: View {
                         Capsule()
                             .fill(Color.black.opacity(0.2))
                     )
+
+                if let badge {
+                    Text(badge)
+                        .font(.system(size: 10, weight: .bold, design: .rounded))
+                        .foregroundColor(bubbleColor)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Capsule().fill(Color.white.opacity(0.92)))
+                        .lineLimit(1)
+                }
             }
 
             // Recurring indicator - two small curved lines at bottom

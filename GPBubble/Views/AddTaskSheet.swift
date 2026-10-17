@@ -60,19 +60,6 @@ struct AddTaskSheet: View {
                 // Priority Section
                 Section {
                     VStack(alignment: .leading, spacing: 18) {
-                        Picker(L("priority.title"), selection: $priority) {
-                            ForEach(priorityOptions, id: \.value) { option in
-                                HStack {
-                                    Circle()
-                                        .fill(option.color)
-                                        .frame(width: 12, height: 12)
-                                    Text(option.label)
-                                }
-                                .tag(option.value)
-                            }
-                        }
-                        .pickerStyle(.menu)
-
                         VStack(alignment: .leading, spacing: 12) {
                             HStack(spacing: 8) {
                                 ForEach(1...5, id: \.self) { level in
@@ -138,6 +125,9 @@ struct AddTaskSheet: View {
                             .frame(maxWidth: .infinity)
                             .frame(height: 110)
                             .clipped()
+                            // Dimmed until a custom duration is chosen, so it never
+                            // reads as a second selection next to the preset buttons.
+                            .opacity(effort >= 180 && Int(effort.rounded()) % 60 == 0 ? 1 : 0.45)
                             .onChange(of: customHours) { _, newValue in
                                 effort = Double(newValue * 60)
                             }
@@ -330,14 +320,7 @@ struct AddTaskSheet: View {
     }
 
     private func priorityColor(for priority: Int) -> Color {
-        switch priority {
-        case 1: return .green
-        case 2: return .yellow
-        case 3: return .orange
-        case 4: return .red
-        case 5: return .purple
-        default: return .orange
-        }
+        AppTheme.priorityColor(priority)
     }
 
     private func priorityLabel(for priority: Int) -> String {

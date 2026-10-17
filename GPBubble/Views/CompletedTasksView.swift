@@ -119,7 +119,7 @@ struct CompletedTasksView: View {
                 }
             } else {
                 ForEach(groupedTasks, id: \.0) { section, tasks in
-                    Section(header: Text(section)) {
+                    Section(header: Text(sectionTitle(section))) {
                         ForEach(tasks) { task in
                             CompletedTaskRow(task: task)
                                 .contentShape(Rectangle())
@@ -154,6 +154,16 @@ struct CompletedTasksView: View {
         .navigationBarTitleDisplayMode(.large)
         .sheet(item: $editingTask) { task in
             EditTaskSheet(task: task)
+        }
+    }
+
+    /// Group keys stay stable English identifiers for sorting; only the header is localized.
+    private func sectionTitle(_ key: String) -> String {
+        switch key {
+        case "Today": return L("completed.filter.today")
+        case "Yesterday": return L("completed.section.yesterday")
+        case "This Week": return L("completed.filter.week")
+        default: return key
         }
     }
 
@@ -198,10 +208,9 @@ struct CompletedTasksView: View {
         }
         .padding(12)
         .background(
-            RoundedRectangle(cornerRadius: 12)
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .fill(AppTheme.surface)
         )
-        .padding(.horizontal)
         .padding(.top, 4)
     }
 
@@ -280,14 +289,7 @@ struct CompletedTaskRow: View {
     let task: TaskItem
 
     private var priorityColor: Color {
-        switch task.priority {
-        case 1: return .green
-        case 2: return .yellow
-        case 3: return .orange
-        case 4: return .red
-        case 5: return .purple
-        default: return .orange
-        }
+        AppTheme.priorityColor(task.priority)
     }
 
     var body: some View {
@@ -307,13 +309,13 @@ struct CompletedTaskRow: View {
                 HStack(spacing: 6) {
                     if let completedAt = task.completedAt {
                         Label(completedAt.formatted(.dateTime.month(.abbreviated).day().hour().minute()), systemImage: "checkmark")
-                            .font(.caption2)
-                            .foregroundColor(.green)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
                     }
 
                     if task.isRecurring, let desc = task.recurringDescription {
                         Label(desc, systemImage: "repeat")
-                            .font(.caption2)
+                            .font(.caption)
                             .foregroundColor(.secondary)
                     }
                 }
@@ -323,12 +325,12 @@ struct CompletedTaskRow: View {
 
             // Time effort badge
             Text(task.effortLabel)
-                .font(.caption2.weight(.medium))
-                .padding(.horizontal, 6)
-                .padding(.vertical, 3)
-                .background(Color.orange.opacity(0.2))
-                .foregroundColor(.orange)
-                .cornerRadius(4)
+                .font(.caption.weight(.semibold))
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(Color(.tertiarySystemFill))
+                .foregroundColor(.secondary)
+                .clipShape(Capsule())
         }
         .padding(.vertical, 2)
         .accessibilityElement(children: .combine)

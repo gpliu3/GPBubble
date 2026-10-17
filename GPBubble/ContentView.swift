@@ -17,6 +17,18 @@ enum AppTheme {
     static let backgroundTop = Color(red: 0.96, green: 0.97, blue: 0.99)
     static let backgroundBottom = Color(red: 0.89, green: 0.93, blue: 0.95)
     static let surface = Color.white.opacity(0.94)
+
+    /// Single source of truth for priority colors so bubbles, lists and editors match.
+    static func priorityColor(_ priority: Int) -> Color {
+        switch priority {
+        case 1: return Color(red: 0.20, green: 0.68, blue: 0.52)
+        case 2: return Color(red: 0.30, green: 0.74, blue: 0.63)
+        case 3: return Color(red: 0.24, green: 0.57, blue: 0.86)
+        case 4: return Color(red: 0.92, green: 0.54, blue: 0.28)
+        case 5: return Color(red: 0.80, green: 0.31, blue: 0.30)
+        default: return primary
+        }
+    }
 }
 
 struct AppBackground: View {
@@ -171,7 +183,7 @@ struct PastDueView: View {
                         .font(.system(size: 48))
                         .foregroundColor(AppTheme.secondary)
 
-                    Text("No past due tasks")
+                    Text(L("pastdue.empty"))
                         .font(.title3)
                         .foregroundColor(.secondary)
                 }
@@ -193,7 +205,8 @@ struct PastDueView: View {
                             },
                             onLongPress: { task in
                                 editingTask = task
-                            }
+                            },
+                            badge: overdueBadge(for:)
                         )
                         .padding(.bottom, 30)
                     }
@@ -205,6 +218,14 @@ struct PastDueView: View {
         .sheet(item: $editingTask) { task in
             EditTaskSheet(task: task)
         }
+    }
+
+    private func overdueBadge(for task: TaskItem) -> String? {
+        guard let dueDate = task.dueDate else { return nil }
+        let calendar = Calendar.current
+        let days = calendar.dateComponents([.day], from: calendar.startOfDay(for: dueDate),
+                                           to: calendar.startOfDay(for: Date())).day ?? 0
+        return days > 0 ? String(format: L("overdue.days.short"), days) : nil
     }
 
     private func completeTask(_ task: TaskItem) {

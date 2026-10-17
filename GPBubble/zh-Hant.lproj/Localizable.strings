@@ -167,3 +167,11 @@
 "pending.section.someday" = "Someday";
 "pending.complete" = "Complete";
 "effort.customhours" = "Custom hours";
+
+/* Overdue and section labels */
+"pastdue.empty" = "沒有逾期任務";
+"pending.overdue.one" = "已逾期 1 天";
+"pending.overdue.other" = "已逾期 %d 天";
+"overdue.days.short" = "逾期%d天";
+"pending.section.tomorrow" = "明天";
+"completed.section.yesterday" = "昨天";

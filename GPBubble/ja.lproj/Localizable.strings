@@ -167,3 +167,11 @@
 "pending.section.someday" = "Someday";
 "pending.complete" = "Complete";
 "effort.customhours" = "Custom hours";
+
+/* Overdue and section labels */
+"pastdue.empty" = "期限切れのタスクはありません";
+"pending.overdue.one" = "1日超過";
+"pending.overdue.other" = "%d日超過";
+"overdue.days.short" = "%d日超過";
+"pending.section.tomorrow" = "明日";
+"completed.section.yesterday" = "昨日";

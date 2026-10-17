@@ -167,3 +167,11 @@
 "pending.section.someday" = "Someday";
 "pending.complete" = "Complete";
 "effort.customhours" = "Custom hours";
+
+/* Overdue and section labels */
+"pastdue.empty" = "No hay tareas vencidas";
+"pending.overdue.one" = "Vencida hace 1 día";
+"pending.overdue.other" = "Vencida hace %d días";
+"overdue.days.short" = "%d d de retraso";
+"pending.section.tomorrow" = "Mañana";
+"completed.section.yesterday" = "Ayer";

@@ -44,6 +44,7 @@ A delightful iOS todo app where tasks float as interactive bubbles. Pop them to 
 - **Zoom Mode Support**: UI adapts to iPhone's Zoom display accessibility setting
 - **Localization**: Full support for multiple languages including English, Chinese (Simplified & Traditional), Japanese, Korean, Spanish, French, German, and Portuguese
 - **Refined Visual Theme**: Softer gradients, cleaner card surfaces, and unified accent colors across tabs
+- **Readable at Larger Text**: Bubble titles shrink and wrap to fit instead of truncating, priority colors match across bubbles, lists and editors, and Past Due bubbles show how many days late each task is
 
 ### Time-Based UI
 - **Day Progress Indicator**: Background gradient changes from morning to evening

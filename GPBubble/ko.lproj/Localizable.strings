@@ -167,3 +167,11 @@
 "pending.section.someday" = "Someday";
 "pending.complete" = "Complete";
 "effort.customhours" = "Custom hours";
+
+/* Overdue and section labels */
+"pastdue.empty" = "기한이 지난 작업이 없습니다";
+"pending.overdue.one" = "1일 지남";
+"pending.overdue.other" = "%d일 지남";
+"overdue.days.short" = "%d일 지남";
+"pending.section.tomorrow" = "내일";
+"completed.section.yesterday" = "어제";
